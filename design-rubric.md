@@ -31,5 +31,19 @@ Graded by **vision** critics (Opus 4.8 reading the PNGs + external `codex exec -
 ## D7 — Coherent brand
 - Consistent palette + voice; one memorable signature detail that makes it unmistakably WorldLine.
 
+## D8 — Motion fidelity (judged from FILMSTRIPS + frame-time telemetry, not stills)
+- Entrances and transitions use deliberate easing; **no abrupt pop-in** (judged across the frame sequence in `/tmp/wl/*filmstrip*`).
+- The fork and the red→green flip read as a **smooth, staged reveal**, not an instant swap.
+- During transitions: avg frame-time ≤ ~20ms (≈50fps+), **near-zero jank frames** (>50ms), per `report.json`. Respects `prefers-reduced-motion`.
+
+## D9 — Interaction states
+- Every control has visible **hover / active / focus-visible** states (captured before/after).
+- Scroll-driven reveals (if used) trigger smoothly; the 3D responds to drag without breaking or freezing.
+
+## D10 — Stability & performance (hard gate)
+- **Zero console errors.** CLS < 0.05. No long tasks that freeze interaction.
+- The **deterministic text-overlap report is EMPTY at every captured state** (this is how D1 is enforced objectively — `report.json.overlaps`).
+
 ## Grade format
-For each D#: `PASS | FAIL` + the specific screenshot evidence + the concrete fix if FAIL. List fixes in priority order. Do not pass D1 if any text overlaps.
+For each D#: `PASS | FAIL` + the specific evidence (frame filenames and/or `report.json` fields) + the concrete fix if FAIL. List fixes in priority order.
+**Hard gates (auto-FAIL):** any non-empty `overlaps` report (D1/D10), any console error (D10), or visible pop-in across a filmstrip (D8). Done = all D# PASS on both the Opus and codex critics **and** all hard gates clear **and** your taste sign-off.
