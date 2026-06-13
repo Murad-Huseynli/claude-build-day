@@ -1,25 +1,23 @@
-# Rubric — Claude grades the build against this (PASS/FAIL + evidence per item)
+# WorldLine — Rubric (model-gradeable PASS/FAIL)
 
-> "Done" = every Functionality + Verifiable item PASSES. Re-grade after each iteration.
-> Make each item checkable by the model without a human (a command, a URL, a file).
+Claude grades the build against these. Each criterion is PASS/FAIL with concrete evidence. "Done" = all CORE + GUARDRAIL criteria PASS.
 
-## Functionality
-- [ ] Core happy-path works end-to-end on the LIVE URL
-- [ ] <feature 1>
-- [ ] <feature 2>
+## CORE — the product loop (must all PASS)
+- **R1 — Backend loop runs end-to-end.** Running the proof script prints: original outcome `FAIL`; culprit node identified; a fork at the culprit flips the outcome to `PASS`; a structured repair object; verifier re-run asserts `PASS`. *Evidence: terminal output.*
+- **R2 — Downstream re-sim is genuinely live.** The post-fork tail issues real Opus 4.8 (`claude-opus-4-8`) calls — not canned strings. *Evidence: non-zero token usage / request ids logged during fork + verify.*
+- **R3 — Auto-bisect is real, not hardcoded.** The search tries interventions across candidate decision nodes; intervening at the culprit flips the outcome, intervening at non-culprit nodes does **not**. The culprit is *discovered*, not asserted. *Evidence: per-node intervention results table.*
+- **R4 — Repair is verified by re-execution.** A full workflow re-run with the patched config at the culprit node yields `PASS`, asserted in code; a machine-readable eval result is emitted (`{passed, before, after, assertion}`). *Evidence: eval JSON.*
+- **R5 — Demo flow present in UI.** Live URL shows: the worldline, the fork at the culprit, the red→green outcome flip, and diagnosis / repair / verification panels.
 
-## Verifiable "done" (the Orchestration score lives here)
-- [ ] Test suite passes — command: `<e.g. npm test>`
-- [ ] Live URL returns 200 — `<url + path>`
-- [ ] <domain check the model can run, e.g. "POST /x returns the expected shape">
+## QUALITY — separates good from winning
+- **R6 — Verification ladder green.** `vitest` passes: (a) counterfactual-flip assertion, (b) repair-verification assertion, (c) ≥1 API test. *Evidence: test output.*
+- **R7 — Live URL 200.** Production alias returns 200, publicly (no auth wall), and runs the golden scenario.
+- **R8 — Three.js reveals real behavior.** The 3D shows the actual run structure + the counterfactual branch — not decoration. One cinematic interaction, not a graph editor.
 
-## Opus 4.8 use (15%)
-- [ ] Uses <capability> in a non-trivial way: <how>
+## GUARDRAILS — disqualifiers / positioning (must all PASS)
+- **R9 — Not a prohibited shape.** Interactive counterfactual simulator, not a dashboard-as-product, RAG, Streamlit, or any banned category.
+- **R10 — Positioning is honest.** No "nobody has time travel/forking" claims anywhere; the "Existing tools vs WorldLine" table is present; uses "intervention-tested attribution," not "mathematical causality."
+- **R11 — Only today's work, public-ready.** Product code is ours; vendored harness skills attributed in `.claude/skills/VENDORED.md`; `.env` never committed.
 
-## Demo path (35%)
-- [ ] 60-second happy path is scripted and reproducible
-- [ ] Known-good fallback recorded in case live fails
-
-## Not disqualified
-- [ ] Not on the prohibited-projects list
-- [ ] Repo public; only today's work; contributions clearly identifiable
+## Grading
+Self-grade after build: list each criterion PASS/FAIL with the evidence pointer. Any CORE or GUARDRAIL FAIL = not done.
