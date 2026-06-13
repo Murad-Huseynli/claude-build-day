@@ -6,9 +6,17 @@ import { vi, describe, it, expect } from "vitest";
 vi.mock("./anthropic", () => ({
   MODEL: "claude-opus-4-8",
   callJSON: vi.fn(async ({ system, user }: { system: string; user: string }) => {
-    if (user.includes('"category"')) {
+    // Route by the unique RETURN-shape marker. Check classify ("category") before
+    // intake ("defectClaimed"), since the classify input JSON also contains defectClaimed.
+    if (user.includes('{"category"')) {
       const buggy = /same calendar month/i.test(system);
       return { data: { category: buggy ? "OUT_OF_WINDOW" : "WITHIN_WINDOW_DEFECTIVE" }, usage: { input: 1, output: 1 } };
+    }
+    if (user.includes('"fraudRisk"')) {
+      return { data: { fraudRisk: "LOW", reason: "ordinary defective-item claim" }, usage: { input: 1, output: 1 } };
+    }
+    if (user.includes('"defectClaimed"')) {
+      return { data: { defectClaimed: true, finalSale: false }, usage: { input: 1, output: 1 } };
     }
     if (user.includes('"decision"')) {
       const eligible = /Eligibility:\s*true/.test(user);
@@ -40,7 +48,6 @@ describe("WorldLine engine", () => {
     expect(forked.outcome.decision).toBe("APPROVE");
     expect(forked.outcome.amount).toBe(240);
     expect(forked.records.find((r) => r.stepId === "classify")?.forked).toBe(true);
-    // upstream cached, tail re-run live
     expect(forked.records.find((r) => r.stepId === "intake")?.cached).toBe(true);
     expect(forked.records.find((r) => r.stepId === "decision")?.live).toBe(true);
   });

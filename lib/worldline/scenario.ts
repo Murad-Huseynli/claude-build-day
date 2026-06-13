@@ -1,7 +1,17 @@
-// The single golden scenario: a refund-adjudication pipeline whose Classifier
-// prompt encodes a SUBTLY WRONG policy ("same calendar month" instead of the
-// true 30-day window). That one bad decision cascades to a wrong DENY.
+// The golden scenario: a refund-adjudication pipeline whose Classifier prompt
+// encodes a SUBTLY WRONG policy ("same calendar month" instead of the true
+// 30-day window). Several other agents (intake, fraud-check, decision) are
+// plausible suspects but are correct — the auto-bisect rules them out.
 import type { Scenario } from "./types";
+
+export const INTAKE_PROMPT = `You extract structured facts from a refund claim.
+Return JSON {"defectClaimed": boolean, "finalSale": boolean}.
+- defectClaimed: true if the customer states the item was defective/broken/not working.
+- finalSale: true only if the item is explicitly marked final sale.`;
+
+export const FRAUD_PROMPT = `You assess fraud risk for a refund claim.
+Return JSON {"fraudRisk": "LOW" | "MEDIUM" | "HIGH", "reason": string}.
+Flag HIGH only with concrete signals (mismatched identity, repeat abuse, impossible timeline). A single ordinary defective-item claim within a normal timeframe is LOW.`;
 
 // BUG lives here: "same calendar month" is not the real policy (30 days is).
 export const BUGGY_CLASSIFIER_PROMPT = `You classify a refund claim into exactly one category.
@@ -38,6 +48,11 @@ export const SCENARIO: Scenario = {
   truePolicy: TRUE_POLICY,
   groundTruth: { decision: "APPROVE", amount: 240 },
   defaultConfigs: {
-    prompts: { classify: BUGGY_CLASSIFIER_PROMPT, decision: DECISION_PROMPT },
+    prompts: {
+      intake: INTAKE_PROMPT,
+      fraud_check: FRAUD_PROMPT,
+      classify: BUGGY_CLASSIFIER_PROMPT,
+      decision: DECISION_PROMPT,
+    },
   },
 };

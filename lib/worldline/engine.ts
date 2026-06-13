@@ -1,5 +1,7 @@
-// Execution engine: run the 6-step workflow, replay cached upstream state, and
-// FORK at a decision node (re-running the downstream tail live).
+// Execution engine: run the 7-step workflow, replay cached upstream state, and
+// FORK at a decision node (re-running the downstream tail live). Five LLM
+// decision nodes (intake, fraud_check, classify, decision are intervenable);
+// only the Classifier is wrong — the auto-bisect rules out the innocents.
 import { callJSON } from "./anthropic";
 import type {
   Category,
@@ -42,11 +44,50 @@ export const STEPS: StepDef[] = [
   {
     id: "intake",
     name: "Intake",
-    kind: "rule",
-    intervenable: false,
+    kind: "llm",
+    intervenable: true,
     async exec(_state, ctx) {
       const c = ctx.scenario.claim;
-      return { output: { claim: c, daysSincePurchase: diffDays(c.purchaseDate, c.requestDate) }, live: false };
+      const days = diffDays(c.purchaseDate, c.requestDate);
+      const { data, usage } = await callJSON({
+        system: ctx.configs.prompts.intake,
+        user: `Claim:\n${JSON.stringify(c, null, 2)}\n\nReturn JSON {"defectClaimed": boolean, "finalSale": boolean}.`,
+        schema: {
+          type: "object",
+          properties: { defectClaimed: { type: "boolean" }, finalSale: { type: "boolean" } },
+          required: ["defectClaimed", "finalSale"],
+          additionalProperties: false,
+        },
+        effort: "low",
+      });
+      return {
+        output: { claim: c, daysSincePurchase: days, defectClaimed: data.defectClaimed, finalSale: data.finalSale },
+        live: true,
+        usage,
+      };
+    },
+  },
+  {
+    id: "fraud_check",
+    name: "Fraud Check",
+    kind: "llm",
+    intervenable: true,
+    async exec(state, ctx) {
+      const { data, usage } = await callJSON({
+        system: ctx.configs.prompts.fraud_check,
+        user:
+          `Claim:\n${JSON.stringify(state.claim, null, 2)}\n` +
+          `defectClaimed=${state.defectClaimed} finalSale=${state.finalSale} daysSincePurchase=${state.daysSincePurchase}\n\n` +
+          `Return JSON {"fraudRisk":"LOW"|"MEDIUM"|"HIGH","reason":string}.`,
+        schema: {
+          type: "object",
+          properties: { fraudRisk: { type: "string", enum: ["LOW", "MEDIUM", "HIGH"] }, reason: { type: "string" } },
+          required: ["fraudRisk", "reason"],
+          additionalProperties: false,
+        },
+        effort: "low",
+      });
+      return { output: { fraudRisk: data.fraudRisk, fraudReason: data.reason }, live: true, usage };
     },
   },
   {
@@ -58,7 +99,7 @@ export const STEPS: StepDef[] = [
       const { data, usage } = await callJSON({
         system: ctx.configs.prompts.classify,
         user:
-          `Claim:\n${JSON.stringify({ ...(state.claim as object), daysSincePurchase: state.daysSincePurchase }, null, 2)}\n\n` +
+          `Claim:\n${JSON.stringify({ ...(state.claim as object), daysSincePurchase: state.daysSincePurchase, defectClaimed: state.defectClaimed, finalSale: state.finalSale }, null, 2)}\n\n` +
           `Return JSON {"category": one of ${JSON.stringify(CATEGORIES)}}.`,
         schema: {
           type: "object",
