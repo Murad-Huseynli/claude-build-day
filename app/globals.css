@@ -26,6 +26,7 @@
   --color-accent: var(--accent);
   --font-display: var(--font-display), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-mono), ui-monospace, monospace;
+  --font-serif: var(--font-serif), ui-serif, Georgia, serif;
 }
 
 html {

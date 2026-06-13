@@ -12,7 +12,7 @@ const STEP_LABELS = ["Run workflow", "Auto-bisect", "Fork timeline", "Re-simulat
 const MAX_STAGE = 7;
 
 const STAGE_COPY: Record<number, { k: string; t: string }> = {
-  1: { k: "01 · the failure", t: "A 7-agent refund pipeline denies a valid claim. Six steps, one wrong answer." },
+  1: { k: "01 · the failure", t: "A 7-step agent pipeline denies a valid claim — one wrong decision cascades to the rest." },
   2: { k: "02 · auto-bisect", t: "Claude audits every decision against policy — and rules out the innocents." },
   3: { k: "03 · fork", t: "The timeline forks at the culprit; the future re-simulates live." },
   4: { k: "04 · flip", t: "Same claim, one decision changed — the outcome flips red → green." },
@@ -31,11 +31,21 @@ export default function Home() {
   const [playing, setPlaying] = useState(false);
   const [live, setLive] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [vertical, setVertical] = useState(false);
   const simRef = useRef<HTMLDivElement>(null);
   const started = useRef(false);
 
   useEffect(() => {
     fetch("/api/loop").then((r) => r.json()).then(setData).catch(() => {});
+  }, []);
+
+  // mobile gets a dedicated vertical worldline (fills the portrait viewport)
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 1023px)");
+    const on = () => setVertical(mq.matches);
+    on();
+    mq.addEventListener("change", on);
+    return () => mq.removeEventListener("change", on);
   }, []);
 
   // auto-start the run when the simulator scrolls into view (once)
@@ -105,10 +115,10 @@ export default function Home() {
       </nav>
 
       {/* hero */}
-      <section id="top" className="mx-auto flex min-h-screen max-w-5xl flex-col items-center justify-center px-6 text-center">
+      <section id="top" className="mx-auto flex min-h-[90vh] max-w-5xl flex-col items-center justify-center px-6 pt-16 text-center">
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7 }}>
           <Eyebrow>A flight simulator for agent failures</Eyebrow>
-          <h1 className="mx-auto mt-5 max-w-3xl text-balance text-5xl font-semibold leading-[1.08] tracking-tight md:text-6xl">
+          <h1 className="mx-auto mt-5 max-w-3xl text-balance font-serif text-5xl font-medium leading-[1.03] tracking-[-0.01em] md:text-7xl">
             <span className="block">Your agent failed.</span>
             <span className="block">
               <span className="text-muted">Which decision</span> <span className="text-pass">actually mattered?</span>
@@ -133,12 +143,13 @@ export default function Home() {
       <Section id="problem">
         <Eyebrow>The problem</Eyebrow>
         <div className="mt-4 grid gap-6 md:grid-cols-[1.2fr_1fr] md:gap-12">
-          <h2 className="text-3xl font-semibold leading-tight tracking-tight md:text-4xl">
+          <h2 className="font-serif text-3xl font-medium leading-tight tracking-[-0.01em] md:text-4xl">
             Multi-agent failures aren&apos;t reproducible — and you can&apos;t tell which decision caused them.
           </h2>
+          {/* serif heading marker */}
           <p className="text-[15px] leading-relaxed text-muted">
             The same input yields different paths, so failures are hard to reproduce and harder to attribute. When a
-            6-agent pipeline returns the wrong answer, which step broke it? Today you read traces and guess. Replay and
+            7-step agent pipeline returns the wrong answer, which decision broke it? Today you read traces and guess. Replay and
             forking exist — but you still pick the checkpoint, and nothing proves the fix.
           </p>
         </div>
@@ -147,14 +158,14 @@ export default function Home() {
       {/* simulator */}
       <section id="sim" ref={simRef} className="mx-auto max-w-6xl scroll-mt-20 px-6 py-20">
         <Eyebrow>See it think</Eyebrow>
-        <h2 className="mt-4 max-w-2xl text-3xl font-semibold tracking-tight md:text-4xl">
+        <h2 className="mt-4 max-w-2xl font-serif text-3xl font-medium tracking-[-0.01em] md:text-4xl">
           Watch Claude debug a failed agent run — live.
         </h2>
 
         <div className="mt-8 grid items-start gap-5 lg:grid-cols-[1.4fr_1fr]">
           {/* canvas */}
-          <div className="relative h-[52vh] min-h-[360px] overflow-hidden rounded-2xl border border-line bg-[#070a12] lg:h-[64vh]">
-            {data ? <WorldlineCanvas data={data} stage={stage} /> : <div className="flex h-full items-center justify-center text-sm text-muted">loading…</div>}
+          <div className="relative h-[68vh] min-h-[460px] overflow-hidden rounded-2xl border border-line bg-[#070a12] lg:h-[64vh]">
+            {data ? <WorldlineCanvas data={data} stage={stage} vertical={vertical} /> : <div className="flex h-full items-center justify-center text-sm text-muted">loading…</div>}
             {/* stage caption */}
             {stage >= 1 && (
               <motion.div
@@ -218,7 +229,7 @@ export default function Home() {
       {/* how it works */}
       <Section id="how">
         <Eyebrow>How it works</Eyebrow>
-        <h2 className="mt-4 max-w-2xl text-3xl font-semibold tracking-tight md:text-4xl">The loop on top of forking.</h2>
+        <h2 className="mt-4 max-w-2xl font-serif text-3xl font-medium tracking-[-0.01em] md:text-4xl">The loop on top of forking.</h2>
         <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {[
             { n: "01", t: "Audit", d: "Claude reviews every agent decision against the policy, in parallel — and rules out the ones that merely applied bad input." },
@@ -226,7 +237,7 @@ export default function Home() {
             { n: "03", t: "Repair", d: "Claude (effort=max) explains the root cause and rewrites the offending prompt." },
             { n: "04", t: "Verify", d: "The full workflow re-runs with the patch; a code assertion proves the outcome flipped." },
           ].map((s) => (
-            <div key={s.n} className="rounded-xl border border-line bg-panel/60 p-5">
+            <div key={s.n} className="rounded-lg border-l-2 border-accent/40 bg-panel/25 p-5">
               <div className="font-mono text-[12px] text-accent">{s.n}</div>
               <div className="mt-2 text-lg font-semibold">{s.t}</div>
               <p className="mt-1.5 text-[13px] leading-relaxed text-muted">{s.d}</p>
@@ -238,7 +249,7 @@ export default function Home() {
       {/* compare */}
       <Section id="compare">
         <Eyebrow>Existing tools vs WorldLine</Eyebrow>
-        <h2 className="mt-4 max-w-2xl text-3xl font-semibold tracking-tight md:text-4xl">Replay and forking exist. We build the loop on top.</h2>
+        <h2 className="mt-4 max-w-2xl font-serif text-3xl font-medium tracking-[-0.01em] md:text-4xl">Replay and forking exist. We build the loop on top.</h2>
         <div className="mt-8 hidden overflow-x-auto rounded-xl border border-line md:block">
           <table className="w-full min-w-[640px] text-left text-[13px]">
             <thead className="bg-panel/60 font-mono text-[11px] uppercase tracking-wider text-muted">
@@ -295,7 +306,7 @@ export default function Home() {
       <Section id="proof">
         <div className="rounded-2xl border border-line bg-panel/60 p-8 text-center md:p-12">
           <Eyebrow>Not a movie</Eyebrow>
-          <h2 className="mx-auto mt-4 max-w-xl text-3xl font-semibold tracking-tight md:text-4xl">
+          <h2 className="mx-auto mt-4 max-w-xl font-serif text-3xl font-medium tracking-[-0.01em] md:text-4xl">
             Everything you saw runs live on Opus&nbsp;4.8.
           </h2>
           <p className="mx-auto mt-3 max-w-lg text-[14px] text-muted">

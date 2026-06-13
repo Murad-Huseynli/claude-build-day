@@ -4,7 +4,7 @@
 *(Engineer hook: "git-bisect for agent decisions.")*
 
 ## Problem
-Multi-agent systems fail in non-deterministic, multi-step ways: the same input yields different paths, so failures are hard to reproduce and harder to attribute. When a 6-agent pipeline returns the wrong answer, *which decision* caused it? Today teams read traces and guess.
+Multi-agent systems fail in non-deterministic, multi-step ways: the same input yields different paths, so failures are hard to reproduce and harder to attribute. When a multi-agent pipeline returns the wrong answer, *which decision* caused it? Today teams read traces and guess.
 
 ## Who / ROI
 AI-engineering and platform teams shipping multi-agent systems. ROI: hours→minutes of debugging, a *provable* fix before merge, fewer production failures.

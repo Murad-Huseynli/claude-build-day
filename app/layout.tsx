@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
-import { Space_Grotesk, JetBrains_Mono } from "next/font/google";
+import { Space_Grotesk, JetBrains_Mono, Fraunces } from "next/font/google";
 import "./globals.css";
 
 const display = Space_Grotesk({ variable: "--font-display", subsets: ["latin"] });
 const mono = JetBrains_Mono({ variable: "--font-mono", subsets: ["latin"] });
+const serif = Fraunces({ variable: "--font-serif", subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "WorldLine — counterfactual debugging for agents",
@@ -13,7 +14,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={`${display.variable} ${mono.variable} h-full antialiased`}>
+    <html lang="en" className={`${display.variable} ${mono.variable} ${serif.variable} h-full antialiased`}>
       <body className="min-h-full">{children}</body>
     </html>
   );
