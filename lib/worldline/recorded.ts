@@ -36,12 +36,12 @@ export const RECORDED = ({
         "kind": "llm",
         "output": {
           "fraudRisk": "LOW",
-          "fraudReason": "Ordinary defective-item claim within a normal 13-day timeframe, item is not final sale, and there are no concrete fraud signals such as identity mismatch, repeat abuse, or an impossible timeline."
+          "fraudReason": "Ordinary defective-item claim within a normal 13-day timeframe, item is not final sale, and no signals of identity mismatch, repeat abuse, or impossible timeline are present."
         },
         "live": true,
         "usage": {
           "input": 568,
-          "output": 88
+          "output": 80
         }
       },
       {
@@ -94,12 +94,12 @@ export const RECORDED = ({
         "kind": "llm",
         "output": {
           "decision": "DENY",
-          "rationale": "Unfortunately, your refund request cannot be approved because the item falls outside our 30-day return window."
+          "rationale": "Unfortunately, your refund request cannot be approved because it was submitted after the 30-day return window had passed."
         },
         "live": true,
         "usage": {
           "input": 418,
-          "output": 49
+          "output": 52
         }
       }
     ],
@@ -117,7 +117,7 @@ export const RECORDED = ({
       "defectClaimed": true,
       "finalSale": false,
       "fraudRisk": "LOW",
-      "fraudReason": "Ordinary defective-item claim within a normal 13-day timeframe, item is not final sale, and there are no concrete fraud signals such as identity mismatch, repeat abuse, or an impossible timeline.",
+      "fraudReason": "Ordinary defective-item claim within a normal 13-day timeframe, item is not final sale, and no signals of identity mismatch, repeat abuse, or impossible timeline are present.",
       "category": "OUT_OF_WINDOW",
       "policyRule": {
         "eligible": false,
@@ -127,7 +127,7 @@ export const RECORDED = ({
       "eligReason": "Return window (30 days) has passed.",
       "amount": 0,
       "decision": "DENY",
-      "rationale": "Unfortunately, your refund request cannot be approved because the item falls outside our 30-day return window."
+      "rationale": "Unfortunately, your refund request cannot be approved because it was submitted after the 30-day return window had passed."
     },
     "outcome": {
       "decision": "DENY",
@@ -141,7 +141,7 @@ export const RECORDED = ({
         "nodeId": "intake",
         "name": "Intake",
         "correct": true,
-        "reason": "Days from 2026-05-28 to 2026-06-10 is 13 days, defectClaimed true matches the reason, finalSale false matches the item description. All fields correctly extracted.",
+        "reason": "Days between 2026-05-28 and 2026-06-10 is 13, defect is claimed, item is not final sale. All extracted fields match the input claim and policy interpretation.",
         "intervened": false,
         "flipped": false
       },
@@ -149,7 +149,7 @@ export const RECORDED = ({
         "nodeId": "fraud_check",
         "name": "Fraud Check",
         "correct": true,
-        "reason": "The fraud check correctly assesses LOW risk: timeline is consistent (13 days, within window), item not final sale, defective claim is ordinary, and no fraud signals present. The output is consistent with its input.",
+        "reason": "The fraud check correctly assesses LOW risk: timeline is consistent (13 days, requestDate after purchaseDate), defect claim is ordinary, item not final sale, and no abuse signals present. Output is consistent with input.",
         "intervened": false,
         "flipped": false
       },
@@ -157,7 +157,7 @@ export const RECORDED = ({
         "nodeId": "classify",
         "name": "Classifier",
         "correct": false,
-        "reason": "Input shows 13 days since purchase (within 30-day window), defect claimed, not final sale. This should be WITHIN_WINDOW_DEFECTIVE, not OUT_OF_WINDOW.",
+        "reason": "Within 13 days (under 30-day window), defect claimed, not final sale — should be WITHIN_WINDOW_DEFECTIVE, not OUT_OF_WINDOW.",
         "correctOutput": {
           "category": "WITHIN_WINDOW_DEFECTIVE"
         },
@@ -167,13 +167,9 @@ export const RECORDED = ({
       {
         "nodeId": "decision",
         "name": "Decision",
-        "correct": false,
-        "reason": "The decision step itself relies on the eligibility input (eligible:false, category OUT_OF_WINDOW). However, the input state is internally contradictory and the decision step contradicts the actual facts present in its own input: daysSincePurchase is 13, which is clearly within the 30-day window, and the item is defective and not final sale. The decision step's rationale states the item is outside the 30-day window, which is false given daysSincePurchase=13 in its own input. A correct decision given the actual input facts (13 days, defective, not final sale) should APPROVE a full refund.",
-        "correctOutput": {
-          "decision": "APPROVE",
-          "rationale": "Your refund request is approved. The item arrived defective within the 30-day return window (13 days since purchase) and is not a final-sale item, qualifying for a full refund of $240."
-        },
-        "intervened": true,
+        "correct": true,
+        "reason": "The decision step correctly applied its input: category was OUT_OF_WINDOW and eligible was false, so DENY with the matching rationale is the correct output given the input. The upstream categorization is wrong (13 days is within window, defective should be WITHIN_WINDOW_DEFECTIVE), but that is not this step's fault.",
+        "intervened": false,
         "flipped": false
       }
     ],
@@ -213,12 +209,12 @@ export const RECORDED = ({
           "kind": "llm",
           "output": {
             "fraudRisk": "LOW",
-            "fraudReason": "Ordinary defective-item claim within a normal 13-day timeframe, item is not final sale, and there are no concrete fraud signals such as identity mismatch, repeat abuse, or an impossible timeline."
+            "fraudReason": "Ordinary defective-item claim within a normal 13-day timeframe, item is not final sale, and no signals of identity mismatch, repeat abuse, or impossible timeline are present."
           },
           "live": false,
           "usage": {
             "input": 568,
-            "output": 88
+            "output": 80
           },
           "cached": true
         },
@@ -269,12 +265,12 @@ export const RECORDED = ({
           "kind": "llm",
           "output": {
             "decision": "APPROVE",
-            "rationale": "Your refund of $240 has been approved because the item was defective and returned within the 30-day eligibility window."
+            "rationale": "Your refund of $240 has been approved because the item was found defective within the 30-day return window."
           },
           "live": true,
           "usage": {
             "input": 429,
-            "output": 52
+            "output": 47
           }
         }
       ],
@@ -292,7 +288,7 @@ export const RECORDED = ({
         "defectClaimed": true,
         "finalSale": false,
         "fraudRisk": "LOW",
-        "fraudReason": "Ordinary defective-item claim within a normal 13-day timeframe, item is not final sale, and there are no concrete fraud signals such as identity mismatch, repeat abuse, or an impossible timeline.",
+        "fraudReason": "Ordinary defective-item claim within a normal 13-day timeframe, item is not final sale, and no signals of identity mismatch, repeat abuse, or impossible timeline are present.",
         "category": "WITHIN_WINDOW_DEFECTIVE",
         "policyRule": {
           "eligible": true,
@@ -302,7 +298,7 @@ export const RECORDED = ({
         "eligReason": "Defective within the 30-day window — full refund.",
         "amount": 240,
         "decision": "APPROVE",
-        "rationale": "Your refund of $240 has been approved because the item was defective and returned within the 30-day eligibility window."
+        "rationale": "Your refund of $240 has been approved because the item was found defective within the 30-day return window."
       },
       "outcome": {
         "decision": "APPROVE",
@@ -315,9 +311,9 @@ export const RECORDED = ({
     "nodeId": "classify",
     "nodeName": "Classifier",
     "originalPrompt": "You classify a refund claim into exactly one category.\nCategories: WITHIN_WINDOW_DEFECTIVE, OUT_OF_WINDOW, FINAL_SALE, BUYER_REMORSE.\n\nReturn-window policy (apply literally):\n- A return is valid ONLY if the request is made in the SAME CALENDAR MONTH as the purchase. If the request month differs from the purchase month, classify OUT_OF_WINDOW.\n- If the item is marked final sale, classify FINAL_SALE.\n- If the reason is change-of-mind with no defect, classify BUYER_REMORSE.\n- Otherwise classify WITHIN_WINDOW_DEFECTIVE.",
-    "patchedPrompt": "You classify a refund claim into exactly one category.\nCategories: WITHIN_WINDOW_DEFECTIVE, OUT_OF_WINDOW, FINAL_SALE, BUYER_REMORSE.\n\nReturn-window policy (apply literally):\n- The return window is 30 CALENDAR DAYS from the purchase date. A request is within the window if the number of days from the purchase date to the request date is 30 or fewer; if it is more than 30 days, the request is outside the window.\n- If the item is marked final sale, classify FINAL_SALE.\n- If the request is made more than 30 days after the purchase date, classify OUT_OF_WINDOW.\n- If the reason is change-of-mind with no defect, classify BUYER_REMORSE.\n- Otherwise (a defect is claimed, the request is within the 30-day window, and the item is not final sale), classify WITHIN_WINDOW_DEFECTIVE.",
-    "rootCause": "The prompt encoded an incorrect return-window rule. It instructed the classifier to treat a return as valid only if made in the SAME CALENDAR MONTH as the purchase, classifying anything in a different month as OUT_OF_WINDOW. The authoritative policy defines the window as 30 CALENDAR DAYS from the purchase date. A claim 13 days after purchase (with a defect, not final sale) is within the window, but the calendar-month rule could mark it OUT_OF_WINDOW (e.g., a purchase late in one month and a request early the next month spanning fewer than 30 days), producing the wrong classification.",
-    "rationale": "The only substantive defect was the window rule. I replaced the SAME CALENDAR MONTH test with the authoritative 30-CALENDAR-DAY test, defining within-window as 30 or fewer days from purchase and OUT_OF_WINDOW as more than 30 days. The other category rules (FINAL_SALE, BUYER_REMORSE, and the default WITHIN_WINDOW_DEFECTIVE) were preserved and clarified to reflect that a defective, non-final-sale item within 30 days yields a full refund. Structure, category list, and the JSON output contract are unchanged. Under this corrected prompt, a 13-day-old defective, non-final-sale claim is correctly classified as WITHIN_WINDOW_DEFECTIVE."
+    "patchedPrompt": "You classify a refund claim into exactly one category.\nCategories: WITHIN_WINDOW_DEFECTIVE, OUT_OF_WINDOW, FINAL_SALE, BUYER_REMORSE.\n\nReturn-window policy (apply literally):\n- The return window is 30 CALENDAR DAYS from the purchase date. A request is within the window if it is made on or before the 30th calendar day after the purchase date; calendar months are irrelevant. If the request is made more than 30 calendar days after the purchase date, classify OUT_OF_WINDOW.\n- If the item is marked final sale, classify FINAL_SALE.\n- If the reason is change-of-mind with no defect (and the item is not final sale), classify BUYER_REMORSE.\n- If the item is defective on arrival, the request is within the 30-day window, and the item is not final sale, classify WITHIN_WINDOW_DEFECTIVE (full refund).\n- Otherwise classify WITHIN_WINDOW_DEFECTIVE.",
+    "rootCause": "The prompt encoded an incorrect return-window rule. It instructed the classifier to treat a return as valid only within the SAME CALENDAR MONTH as purchase, and to mark anything in a different month as OUT_OF_WINDOW. The authoritative policy actually uses a rolling 30 CALENDAR DAYS from the purchase date. A claim made 13 days after purchase spanning a month boundary was therefore wrongly classified OUT_OF_WINDOW instead of WITHIN_WINDOW_DEFECTIVE.",
+    "rationale": "I replaced the erroneous 'same calendar month' rule with the authoritative 30 calendar days from purchase date, explicitly noting that month boundaries do not matter. This ensures a defective, non-final-sale claim made 13 days after purchase is correctly classified WITHIN_WINDOW_DEFECTIVE. I preserved the prompt's structure, category list, ordering of checks, and the single-category JSON output contract, changing only the window definition and clarifying the defective-within-window case to match policy."
   },
   "verify": {
     "verifiedRun": {
@@ -353,12 +349,12 @@ export const RECORDED = ({
           "kind": "llm",
           "output": {
             "fraudRisk": "LOW",
-            "fraudReason": "Ordinary defective-item claim within a normal 13-day timeframe, item is not final sale, and no signals of identity mismatch, repeat abuse, or impossible timeline."
+            "fraudReason": "Ordinary defective-item claim within a normal 13-day timeframe, item is not final sale, and there are no signals of identity mismatch, repeat abuse, or impossible timeline."
           },
           "live": true,
           "usage": {
             "input": 568,
-            "output": 78
+            "output": 80
           }
         },
         {
@@ -370,7 +366,7 @@ export const RECORDED = ({
           },
           "live": true,
           "usage": {
-            "input": 805,
+            "input": 837,
             "output": 28
           }
         },
@@ -411,12 +407,12 @@ export const RECORDED = ({
           "kind": "llm",
           "output": {
             "decision": "APPROVE",
-            "rationale": "Your refund of $240 has been approved because your item was defective and returned within the 30-day eligibility window."
+            "rationale": "Your refund of $240 has been approved because the item was defective and returned within the 30-day window."
           },
           "live": true,
           "usage": {
             "input": 429,
-            "output": 52
+            "output": 48
           }
         }
       ],
@@ -434,7 +430,7 @@ export const RECORDED = ({
         "defectClaimed": true,
         "finalSale": false,
         "fraudRisk": "LOW",
-        "fraudReason": "Ordinary defective-item claim within a normal 13-day timeframe, item is not final sale, and no signals of identity mismatch, repeat abuse, or impossible timeline.",
+        "fraudReason": "Ordinary defective-item claim within a normal 13-day timeframe, item is not final sale, and there are no signals of identity mismatch, repeat abuse, or impossible timeline.",
         "category": "WITHIN_WINDOW_DEFECTIVE",
         "policyRule": {
           "eligible": true,
@@ -444,7 +440,7 @@ export const RECORDED = ({
         "eligReason": "Defective within the 30-day window — full refund.",
         "amount": 240,
         "decision": "APPROVE",
-        "rationale": "Your refund of $240 has been approved because your item was defective and returned within the 30-day eligibility window."
+        "rationale": "Your refund of $240 has been approved because the item was defective and returned within the 30-day window."
       },
       "outcome": {
         "decision": "APPROVE",
@@ -466,7 +462,7 @@ export const RECORDED = ({
     }
   },
   "usage": {
-    "input": 12488,
-    "output": 2032
+    "input": 10715,
+    "output": 1639
   }
 }) as unknown as LoopResult;

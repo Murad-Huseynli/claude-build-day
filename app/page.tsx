@@ -3,6 +3,7 @@ import dynamic from "next/dynamic";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { motion } from "motion/react";
 import Panels from "@/components/Panels";
+import Memory from "@/components/Memory";
 import type { LoopResult } from "@/lib/worldline/types";
 
 const WorldlineCanvas = dynamic(() => import("@/components/WorldlineCanvas"), { ssr: false });
@@ -104,6 +105,7 @@ export default function Home() {
             World<span className="text-accent">Line</span>
           </a>
           <div className="flex items-center gap-5 text-[13px] text-muted">
+            <a href="#memory" className="hidden transition hover:text-fg sm:block">Memory</a>
             <a href="#how" className="hidden transition hover:text-fg sm:block">How it works</a>
             <a href="#compare" className="hidden transition hover:text-fg sm:block">Compare</a>
             <a href="https://github.com/Murad-Huseynli/claude-build-day" className="hidden transition hover:text-fg sm:block">GitHub</a>
@@ -225,6 +227,20 @@ export default function Home() {
           </div>
         )}
       </section>
+
+      {/* institutional memory */}
+      <Section id="memory">
+        <Eyebrow>Institutional memory</Eyebrow>
+        <h2 className="mt-4 max-w-2xl font-serif text-3xl font-medium tracking-[-0.01em] md:text-4xl">The same mistake never ships twice.</h2>
+        <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-muted">
+          Every intervention-tested fix becomes a durable lesson your whole fleet inherits. When any agent — even a
+          different one — is about to repeat a known failure class, WorldLine catches it from memory and applies the
+          verified fix before it ships. Observability shows what happened; this makes your agents get more reliable over time.
+        </p>
+        <div className="mt-8">
+          <Memory />
+        </div>
+      </Section>
 
       {/* how it works */}
       <Section id="how">
