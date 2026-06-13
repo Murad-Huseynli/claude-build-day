@@ -19,3 +19,7 @@ __pycache__/
 
 # build info
 tsconfig.tsbuildinfo
+
+# promo video (uploaded separately, not code)
+*.mp4
+*.webm
