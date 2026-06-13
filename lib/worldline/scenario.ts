@@ -56,3 +56,39 @@ export const SCENARIO: Scenario = {
     },
   },
 };
+
+// The verified fix WorldLine authors for the classifier bug — stored as a reusable
+// lesson asset so a DIFFERENT agent with the same failure class can be repaired
+// from memory without re-debugging.
+export const CORRECTED_CLASSIFIER_PROMPT = `You classify a refund/warranty claim into exactly one category.
+Categories: WITHIN_WINDOW_DEFECTIVE, OUT_OF_WINDOW, FINAL_SALE, BUYER_REMORSE.
+
+Return-window policy (apply literally):
+- The return window is 30 CALENDAR DAYS from the purchase date. Crossing a month boundary does NOT make a request out of window — only more than 30 days does.
+- If the item is marked final sale, classify FINAL_SALE.
+- If the reason is change-of-mind with no defect, classify BUYER_REMORSE.
+- Otherwise, if defective within the 30-day window, classify WITHIN_WINDOW_DEFECTIVE.`;
+
+// A SECOND, different agent (warranty desk) carrying the SAME failure class — used
+// to demonstrate recurrence prevention from accumulated memory.
+export const SCENARIO_B: Scenario = {
+  claim: {
+    orderId: "W-8830",
+    customer: "Cobalt Logistics",
+    item: "Industrial sensor (warranty, not final sale)",
+    amount: 520,
+    purchaseDate: "2026-05-30",
+    requestDate: "2026-06-12", // 13 days — within the 30-day window, crosses a month boundary
+    reason: "Dead on arrival under warranty — sensor will not initialize.",
+  },
+  truePolicy: TRUE_POLICY,
+  groundTruth: { decision: "APPROVE", amount: 520 },
+  defaultConfigs: {
+    prompts: {
+      intake: INTAKE_PROMPT,
+      fraud_check: FRAUD_PROMPT,
+      classify: BUGGY_CLASSIFIER_PROMPT,
+      decision: DECISION_PROMPT,
+    },
+  },
+};
