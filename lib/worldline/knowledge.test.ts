@@ -9,7 +9,9 @@ vi.mock("./anthropic", () => ({
       return { data: { matchId: "WL-001", confidence: 0.9, rationale: "same date-window failure class" }, usage: { input: 1, output: 1 } };
     }
     if (user.includes('"risk"')) {
-      const regress = /same calendar month/i.test(user) && /wrong-policy-in-prompt/.test(user);
+      // only inspect the candidate's proposed rule (the lesson's rootCause also mentions the phrase)
+      const rule = user.split("proposed rule:")[1] ?? "";
+      const regress = /same calendar month/i.test(rule) && /wrong-policy-in-prompt/.test(user);
       return { data: { risk: regress ? "high" : "none", why: "t" }, usage: { input: 1, output: 1 } };
     }
     if (user.includes('{"category"')) {
