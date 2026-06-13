@@ -1,0 +1,4 @@
+# Never upload secrets to Vercel build context
+.env
+.env.*
+!.env.example
