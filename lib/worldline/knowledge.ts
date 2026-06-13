@@ -188,3 +188,75 @@ export async function runPrevention(lessons: Lesson[]): Promise<PreventionResult
     usage,
   };
 }
+
+// ── Pre-ship gate ──────────────────────────────────────────────────────────
+// A candidate agent change is checked against EVERY accumulated lesson (in
+// parallel). If it would reintroduce a known failure class, the gate blocks it —
+// the org's verified lessons become a living regression suite for CI/CD.
+
+export interface CandidateChange {
+  agent: string;
+  label: string;
+  promptSnippet: string;
+}
+
+export const CANDIDATES: CandidateChange[] = [
+  {
+    agent: "refund-classifier",
+    label: "v2.1 — 'current calendar month' rule",
+    promptSnippet: "A return is valid only if it is requested during the same calendar month as the purchase; requests in any later month are OUT_OF_WINDOW.",
+  },
+  {
+    agent: "refund-classifier",
+    label: "v2.2 — explicit 30-day window",
+    promptSnippet: "A return is valid if requested within 30 calendar days of the purchase date, regardless of any month boundary.",
+  },
+];
+
+export interface GateCheck {
+  lessonId: string;
+  failureClass: string;
+  risk: "none" | "low" | "high";
+  why: string;
+}
+export interface GateResult {
+  candidate: CandidateChange;
+  checks: GateCheck[];
+  gate: "PASS" | "BLOCK";
+  blockedBy: string[];
+  usage: Usage;
+}
+
+export async function gateCandidate(candidate: CandidateChange, lessons: Lesson[]): Promise<GateResult> {
+  const usage: Usage = { input: 0, output: 0 };
+  const add = (u: Usage) => {
+    usage.input += u.input;
+    usage.output += u.output;
+  };
+
+  // fan out: one check per lesson, in parallel
+  const checks = await Promise.all(
+    lessons.map(async (l): Promise<GateCheck> => {
+      const { data, usage: u } = await callJSON({
+        system:
+          "You are WorldLine's pre-ship gate. Given a candidate agent change and ONE known lesson (a past, verified failure), decide whether the change risks REINTRODUCING that failure class. Be precise: flag 'high' only when the change clearly repeats the lesson's root-cause mechanism for the same kind of agent.",
+        user:
+          `KNOWN LESSON:\n${JSON.stringify({ id: l.id, agent: l.agent, failureClass: l.failureClass, rootCause: l.rootCause }, null, 2)}\n\n` +
+          `CANDIDATE CHANGE:\nagent: ${candidate.agent}\nproposed rule: ${candidate.promptSnippet}\n\n` +
+          `Return JSON {"risk":"none"|"low"|"high","why":string}.`,
+        schema: {
+          type: "object",
+          properties: { risk: { type: "string", enum: ["none", "low", "high"] }, why: { type: "string" } },
+          required: ["risk", "why"],
+          additionalProperties: false,
+        },
+        effort: "low",
+      });
+      add(u);
+      return { lessonId: l.id, failureClass: l.failureClass, risk: data.risk, why: data.why };
+    }),
+  );
+
+  const blockedBy = checks.filter((c) => c.risk === "high").map((c) => c.lessonId);
+  return { candidate, checks, gate: blockedBy.length ? "BLOCK" : "PASS", blockedBy, usage };
+}

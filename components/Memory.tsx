@@ -16,10 +16,23 @@ interface Prevention {
   match: { lesson: Lesson | null; confidence: number; rationale: string };
   prevented: { decision: string | null; amount: number; pass: boolean } | null;
 }
+interface GateCheck {
+  lessonId: string;
+  failureClass: string;
+  risk: "none" | "low" | "high";
+  why: string;
+}
+interface GateResult {
+  candidate: { agent: string; label: string; promptSnippet: string };
+  checks: GateCheck[];
+  gate: "PASS" | "BLOCK";
+  blockedBy: string[];
+}
 interface MemData {
   source?: string;
   lessons: Lesson[];
   prevention: Prevention;
+  gate?: GateResult[];
 }
 
 export default function Memory() {
@@ -96,6 +109,31 @@ export default function Memory() {
           <span className={live ? "text-pass" : "text-muted"}>● {live ? "LIVE" : "recorded"}</span> · {data.lessons.length} lessons in fleet memory
         </span>
       </div>
+
+      {/* pre-ship gate: lessons become a CI regression suite */}
+      {data.gate && data.gate.length > 0 && (
+        <div className="mt-8">
+          <div className="mb-3 font-mono text-[10px] uppercase tracking-[0.18em] text-muted">pre-ship gate · every lesson is a CI regression check</div>
+          <div className="grid gap-3 md:grid-cols-2">
+            {data.gate.map((g, i) => {
+              const block = g.gate === "BLOCK";
+              const reason = g.checks.find((c) => g.blockedBy.includes(c.lessonId));
+              return (
+                <div key={i} className={`rounded-xl border p-4 ${block ? "border-fail/30 bg-fail/[0.05]" : "border-pass/30 bg-pass/[0.05]"}`}>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-mono text-[11px] text-fg/80">{g.candidate.agent} · {g.candidate.label}</span>
+                    <span className={`shrink-0 rounded-full px-2 py-0.5 font-mono text-[10px] font-semibold ${block ? "bg-fail/15 text-fail" : "bg-pass/15 text-pass"}`}>
+                      {block ? "BLOCKED" : "CLEARED"}
+                    </span>
+                  </div>
+                  <p className="mt-2 font-mono text-[11px] leading-snug text-muted">{g.candidate.promptSnippet}</p>
+                  {block && reason && <p className="mt-2 text-[11px] leading-snug text-fail/90">reintroduces {reason.lessonId}: {reason.why}</p>}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* the live knowledge graph */}
       <div className="mt-8 rounded-2xl border border-line bg-panel/30 p-3">

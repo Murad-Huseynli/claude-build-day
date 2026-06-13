@@ -8,6 +8,10 @@ vi.mock("./anthropic", () => ({
     if (user.includes('"matchId"')) {
       return { data: { matchId: "WL-001", confidence: 0.9, rationale: "same date-window failure class" }, usage: { input: 1, output: 1 } };
     }
+    if (user.includes('"risk"')) {
+      const regress = /same calendar month/i.test(user) && /wrong-policy-in-prompt/.test(user);
+      return { data: { risk: regress ? "high" : "none", why: "t" }, usage: { input: 1, output: 1 } };
+    }
     if (user.includes('{"category"')) {
       const buggy = /same calendar month/i.test(system);
       return { data: { category: buggy ? "OUT_OF_WINDOW" : "WITHIN_WINDOW_DEFECTIVE" }, usage: { input: 1, output: 1 } };
@@ -26,7 +30,7 @@ vi.mock("./anthropic", () => ({
   }),
 }));
 
-import { runPrevention, SEED_LESSONS } from "./knowledge";
+import { runPrevention, gateCandidate, CANDIDATES, SEED_LESSONS } from "./knowledge";
 
 describe("institutional memory", () => {
   it("recurrence prevention: a different agent is matched to memory and repaired without re-debugging", async () => {
@@ -35,5 +39,13 @@ describe("institutional memory", () => {
     expect(r.match.lesson?.id).toBe("WL-001"); // matched the known failure class
     expect(r.prevented?.pass).toBe(true); // verified fix applied
     expect(r.prevented?.amount).toBe(520);
+  });
+
+  it("pre-ship gate blocks a candidate that reintroduces a known lesson, clears a safe one", async () => {
+    const bad = await gateCandidate(CANDIDATES[0], SEED_LESSONS);
+    expect(bad.gate).toBe("BLOCK");
+    expect(bad.blockedBy).toContain("WL-001");
+    const good = await gateCandidate(CANDIDATES[1], SEED_LESSONS);
+    expect(good.gate).toBe("PASS");
   });
 });
