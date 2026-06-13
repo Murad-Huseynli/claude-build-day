@@ -9,13 +9,14 @@ vi.mock("./anthropic", () => ({
       return { data: { matchId: "WL-001", confidence: 0.9, rationale: "same date-window failure class" }, usage: { input: 1, output: 1 } };
     }
     if (user.includes('"risk"')) {
-      // only inspect the candidate's proposed rule (the lesson's rootCause also mentions the phrase)
+      // only inspect the candidate's proposed rule (the lesson's rootCause also mentions the phrase).
+      // The gate must catch the month-boundary MECHANISM, however it's worded — not a literal string.
       const rule = user.split("proposed rule:")[1] ?? "";
-      const regress = /same calendar month/i.test(rule) && /wrong-policy-in-prompt/.test(user);
+      const regress = /billing period|billing cycle|calendar month|same month/i.test(rule) && /wrong-policy-in-prompt/.test(user);
       return { data: { risk: regress ? "high" : "none", why: "t" }, usage: { input: 1, output: 1 } };
     }
     if (user.includes('{"category"')) {
-      const buggy = /same calendar month/i.test(system);
+      const buggy = /same calendar month|billing cycle/i.test(system);
       return { data: { category: buggy ? "OUT_OF_WINDOW" : "WITHIN_WINDOW_DEFECTIVE" }, usage: { input: 1, output: 1 } };
     }
     if (user.includes('"fraudRisk"')) {

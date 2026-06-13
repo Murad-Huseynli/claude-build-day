@@ -69,8 +69,19 @@ Return-window policy (apply literally):
 - If the reason is change-of-mind with no defect, classify BUYER_REMORSE.
 - Otherwise, if defective within the 30-day window, classify WITHIN_WINDOW_DEFECTIVE.`;
 
-// A SECOND, different agent (warranty desk) carrying the SAME failure class — used
-// to demonstrate recurrence prevention from accumulated memory.
+// A SECOND agent (warranty desk) carrying the SAME failure CLASS but with
+// DIFFERENT surface wording — "billing cycle" instead of "calendar month". This is
+// the whole point of causal memory: the match is on the failure MECHANISM (a
+// month-boundary heuristic standing in for the true 30-day window), not the text.
+export const BUGGY_WARRANTY_PROMPT = `You classify a warranty claim into exactly one category.
+Categories: WITHIN_WINDOW_DEFECTIVE, OUT_OF_WINDOW, FINAL_SALE, BUYER_REMORSE.
+
+Coverage-window policy (apply literally):
+- A claim is covered ONLY if it is filed in the SAME BILLING CYCLE as the purchase. A new billing cycle begins on the 1st of each month. If the claim falls in a later billing cycle than the purchase, classify OUT_OF_WINDOW.
+- If the item is marked final sale, classify FINAL_SALE.
+- If the reason is change-of-mind with no defect, classify BUYER_REMORSE.
+- Otherwise classify WITHIN_WINDOW_DEFECTIVE.`;
+
 export const SCENARIO_B: Scenario = {
   claim: {
     orderId: "W-8830",
@@ -87,7 +98,7 @@ export const SCENARIO_B: Scenario = {
     prompts: {
       intake: INTAKE_PROMPT,
       fraud_check: FRAUD_PROMPT,
-      classify: BUGGY_CLASSIFIER_PROMPT,
+      classify: BUGGY_WARRANTY_PROMPT, // different wording, SAME failure class as WL-001
       decision: DECISION_PROMPT,
     },
   },

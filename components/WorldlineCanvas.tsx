@@ -50,6 +50,7 @@ interface NodeSpec {
   delay: number;
   emphasis?: boolean;
   dimAt?: number;
+  mul?: number; // emissive/halo multiplier (dead-end probes are faint)
 }
 
 function Node({ spec, stage, halo, t0 }: { spec: NodeSpec; stage: number; halo: THREE.Texture | null; t0: MutableRefObject<number> }) {
@@ -62,11 +63,12 @@ function Node({ spec, stage, halo, t0 }: { spec: NodeSpec; stage: number; halo: 
     const lit = stage >= spec.lit;
     const want = active ? 1 : 0.0001;
     grp.current.scale.setScalar(grp.current.scale.x + (want - grp.current.scale.x) * 0.16);
+    const mul = spec.mul ?? 1;
     const pulse = spec.emphasis && stage >= 2 && stage <= 3 ? 0.6 + Math.sin(clock.elapsedTime * 3.2) * 0.5 : 0;
-    const baseE0 = active && lit ? (spec.emphasis ? 2.0 : 1.15) : 0.06;
+    const baseE0 = active && lit ? (spec.emphasis ? 2.0 : 1.15) * mul : 0.06;
     const baseE = spec.dimAt && stage >= spec.dimAt ? baseE0 * 0.22 : baseE0;
     if (core.current) core.current.emissiveIntensity += (baseE + pulse - core.current.emissiveIntensity) * 0.18;
-    if (hmat.current) hmat.current.opacity += ((active && lit ? 0.75 : 0.1) + pulse * 0.25 - hmat.current.opacity) * 0.18;
+    if (hmat.current) hmat.current.opacity += ((active && lit ? 0.75 * mul : 0.1) + pulse * 0.25 - hmat.current.opacity) * 0.18;
   });
   return (
     <group ref={grp} position={spec.p} scale={0.0001}>
@@ -83,17 +85,17 @@ function Node({ spec, stage, halo, t0 }: { spec: NodeSpec; stage: number; halo: 
   );
 }
 
-function Edge({ a, b, color, reveal, delay, stage, t0 }: { a: [number, number, number]; b: [number, number, number]; color: string; reveal: number; delay: number; stage: number; t0: MutableRefObject<number> }) {
+function Edge({ a, b, color, reveal, delay, stage, t0, opacity = 0.5, width = 2.2 }: { a: [number, number, number]; b: [number, number, number]; color: string; reveal: number; delay: number; stage: number; t0: MutableRefObject<number>; opacity?: number; width?: number }) {
   const ref = useRef<{ material?: { opacity: number } }>(null);
   useFrame(({ clock }) => {
     const m = ref.current?.material;
     if (!m) return;
     const local = clock.elapsedTime - t0.current - delay;
-    const target = stage >= reveal && local > 0 ? 0.5 : 0;
+    const target = stage >= reveal && local > 0 ? opacity : 0;
     m.opacity += (target - m.opacity) * 0.12;
   });
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return <Line ref={ref as any} points={[a, b]} color={color} lineWidth={2.2} transparent opacity={0} />;
+  return <Line ref={ref as any} points={[a, b]} color={color} lineWidth={width} transparent opacity={0} />;
 }
 
 function Scene({ data, stage, vertical }: { data: LoopResult; stage: number; vertical: boolean }) {
@@ -129,9 +131,22 @@ function Scene({ data, stage, vertical }: { data: LoopResult; stage: number; ver
     cf.forEach((id, i) => nodes.push({ key: "cf_" + id, p: P(id, true), color: COL.pass, size: ruleIds.has(id) ? 0.22 : 0.34, reveal: 3, lit: 3, delay: i * 0.13 }));
     nodes.push({ key: "outcomeG", p: P("outcome", true), color: COL.pass, size: 0.42, reveal: 3, lit: 4, delay: 0.55 });
 
-    const edges: { a: [number, number, number]; b: [number, number, number]; color: string; reveal: number; delay: number }[] = [];
+    const edges: { a: [number, number, number]; b: [number, number, number]; color: string; reveal: number; delay: number; opacity?: number; width?: number }[] = [];
     for (let i = 0; i < orig.length - 1; i++) edges.push({ a: P(orig[i]), b: P(orig[i + 1]), color: i >= 2 ? COL.fail : COL.neutral, reveal: 1, delay: i * 0.06 });
     edges.push({ a: P("decision"), b: P("outcome"), color: COL.fail, reveal: 1, delay: 0.42 });
+
+    // Dead-end probes: at Attribute (stage 2) the bisect intervention-TESTS every
+    // innocent LLM node; each stays red (no flip) — short faint stubs that splay
+    // away from the green hero branch. Only the culprit's probe flips (below).
+    const deadEnds = (data.bisect.evidence ?? []).filter((e) => e.intervened && !e.flipped && e.nodeId !== culprit);
+    const stub: [number, number, number] = vertical ? [-1.4, -0.18, 0.15] : [0, -1.3, 0.35];
+    deadEnds.forEach((e, i) => {
+      const base = P(e.nodeId);
+      const sp: [number, number, number] = [base[0] + stub[0] + (vertical ? 0 : (i - 1) * 0.12), base[1] + stub[1], base[2] + stub[2]];
+      nodes.push({ key: "de_" + e.nodeId, p: sp, color: COL.fail, size: 0.17, reveal: 2, lit: 2, delay: i * 0.2, mul: 0.45 });
+      edges.push({ a: base, b: sp, color: COL.fail, reveal: 2, delay: i * 0.2, opacity: 0.28, width: 1.6 });
+    });
+
     edges.push({ a: P("classify"), b: P("retrieve_policy", true), color: COL.pass, reveal: 3, delay: 0 });
     for (let i = 0; i < cf.length - 1; i++) edges.push({ a: P(cf[i], true), b: P(cf[i + 1], true), color: COL.pass, reveal: 3, delay: (i + 1) * 0.13 });
     edges.push({ a: P("decision", true), b: P("outcome", true), color: COL.pass, reveal: 3, delay: 0.5 });

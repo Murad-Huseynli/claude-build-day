@@ -9,7 +9,7 @@ export function freshCtx(): Ctx {
   return { scenario: SCENARIO, configs: JSON.parse(JSON.stringify(SCENARIO.defaultConfigs)) };
 }
 
-export async function runFullLoop(): Promise<LoopResult> {
+export async function runFullLoop(opts?: { probeAll?: boolean }): Promise<LoopResult> {
   const usage: Usage = { input: 0, output: 0 };
   const add = (u: Usage) => {
     usage.input += u.input;
@@ -21,7 +21,7 @@ export async function runFullLoop(): Promise<LoopResult> {
   const base = await runWorkflow(ctx, "base");
   for (const r of base.records) if (r.usage) add(r.usage);
 
-  const bisect = await autoBisect(base, ctx, add);
+  const bisect = await autoBisect(base, ctx, add, opts?.probeAll);
   if (!bisect.culpritId) throw new Error("auto-bisect found no culprit intervention");
 
   const repair = await diagnoseAndRepair(base, bisect, ctx, add);

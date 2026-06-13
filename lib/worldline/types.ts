@@ -71,6 +71,8 @@ export interface AuditEvidence {
   correctOutput?: State;
   intervened: boolean;
   flipped: boolean;
+  probedTo?: string; // short label of the counterfactual value we injected
+  result?: { decision: string | null; amount: number }; // the actual outcome of that intervention
 }
 
 export interface BisectResult {

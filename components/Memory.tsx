@@ -98,6 +98,22 @@ export default function Memory() {
         </div>
       </div>
 
+      {/* why it's not RAG/string-matching + the ROI asymmetry (causal memory) */}
+      <div className="mt-4 grid gap-3 sm:grid-cols-[1.35fr_1fr]">
+        <div className="rounded-xl border border-line bg-panel/40 p-4">
+          <div className="font-mono text-[10px] uppercase tracking-wider text-muted">not string-matching</div>
+          <p className="mt-1.5 text-[12.5px] leading-snug text-fg/80">
+            Agent B&apos;s prompt says <span className="font-mono text-warn">&ldquo;billing cycle&rdquo;</span>, not <span className="font-mono text-warn">&ldquo;calendar month&rdquo;</span> — different words, the same failure <em>mechanism</em>: a month-boundary heuristic standing in for the true 30-day window. WorldLine matched on the mechanism, not the text.
+          </p>
+        </div>
+        <div className="rounded-xl border border-pass/25 bg-pass/[0.04] p-4">
+          <div className="font-mono text-[10px] uppercase tracking-wider text-pass/80">the ROI asymmetry</div>
+          <p className="mt-1.5 text-[12.5px] leading-snug text-fg/80">
+            Opus-max debugs a failure class <span className="text-fg/90">once</span>; every recurrence prevented and regression gated after is near-free. Here a <span className="text-pass">${p.prevented?.amount ?? 520}</span> wrongful denial caught before shipping — one lesson now guards <span className="text-fg/90">{p.match.lesson?.protects.length ?? 3}</span> agents.
+          </p>
+        </div>
+      </div>
+
       <div className="mt-4 flex flex-wrap items-center gap-3">
         <button onClick={checkLive} disabled={busy} className="rounded-full bg-pass/15 px-4 py-2 text-[13px] font-medium text-pass transition hover:bg-pass/25 disabled:opacity-50">
           {busy ? "Checking live…" : "Check a new agent against memory →"}

@@ -203,8 +203,10 @@ export interface CandidateChange {
 export const CANDIDATES: CandidateChange[] = [
   {
     agent: "refund-classifier",
-    label: "v2.1 — 'current calendar month' rule",
-    promptSnippet: "A return is valid only if it is requested during the same calendar month as the purchase; requests in any later month are OUT_OF_WINDOW.",
+    label: "v2.1 — 'within the billing period' rule",
+    // Lexically nothing like "calendar month", but it re-encodes the SAME wrong
+    // mechanism (a month-boundary heuristic instead of the true 30-day window).
+    promptSnippet: "A return is valid only if it is filed within the same billing period as the purchase, where each period runs from the 1st to the last day of a month.",
   },
   {
     agent: "refund-classifier",

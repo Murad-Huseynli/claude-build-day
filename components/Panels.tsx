@@ -22,6 +22,11 @@ export default function Panels({ data, stage }: { data: LoopResult; stage: numbe
   const evOf = (id: string) => data.bisect.evidence.find((e) => e.nodeId === id);
   const culprit = evOf(data.bisect.culpritId ?? "");
 
+  // intervention-tested attribution stats (the parallel search, made visible)
+  const tested = data.bisect.evidence.filter((e) => e.intervened);
+  const innocents = tested.filter((e) => !e.flipped);
+  const decoy = evOf("decision"); // the last-touch suspect — looks guilty, isn't
+
   // single inspector "phase" driven by stage
   const phase = stage >= 7 ? "verify" : stage >= 6 ? "repair" : stage >= 5 ? "diagnose" : stage >= 4 ? "flip" : stage >= 2 ? "culprit" : "run";
 
@@ -89,8 +94,34 @@ export default function Panels({ data, stage }: { data: LoopResult; stage: numbe
               </Inspector>
             )}
             {phase === "culprit" && (
-              <Inspector label={`culprit · ${data.bisect.culpritName} · intervention-tested`} accent="text-warn">
-                <p className="text-[13px] leading-relaxed text-fg/85">{culprit?.reason}</p>
+              <Inspector label="attribution · every decision intervention-tested in parallel" accent="text-warn">
+                <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 font-mono text-[11px]">
+                  <span className="text-fg/80">{tested.length} tested</span>
+                  <span className="text-muted">·</span>
+                  <span className="text-pass/70">{innocents.length} ruled innocent</span>
+                  <span className="text-muted">·</span>
+                  <span className="rounded bg-warn/20 px-1.5 py-0.5 font-semibold text-warn">1 culprit</span>
+                </div>
+                {/* the real, auditable intervention table — each probe's actual outcome */}
+                <ul className="mt-2 font-mono text-[10.5px]">
+                  {tested.map((e) => (
+                    <li key={e.nodeId} className="flex items-center gap-2 border-t border-line/40 py-1">
+                      <span className="w-[62px] shrink-0 text-fg/80">{e.name}</span>
+                      <span className="flex-1 truncate text-muted">{e.probedTo}</span>
+                      <span className="shrink-0 tnum text-muted">⇒ {e.result?.decision} ${e.result?.amount}</span>
+                      {e.flipped ? (
+                        <span className="shrink-0 rounded bg-warn/20 px-1 font-semibold text-warn">CULPRIT</span>
+                      ) : (
+                        <span className="shrink-0 text-pass/70">ruled out</span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+                {decoy && decoy.intervened && !decoy.flipped && (
+                  <p className="mt-2 text-[11.5px] leading-snug text-muted">
+                    Even forcing the <span className="text-fg/80">Decision</span> agent to APPROVE pays <span className="text-fail">$0</span> — the money is wrong upstream. Only the <span className="text-warn">{data.bisect.culpritName}</span> flips the outcome.
+                  </p>
+                )}
               </Inspector>
             )}
             {phase === "flip" && (
@@ -110,8 +141,8 @@ export default function Panels({ data, stage }: { data: LoopResult; stage: numbe
               </Inspector>
             )}
             {phase === "verify" && (
-              <Inspector label="verifier · full re-run" accent="text-pass">
-                <div className="flex items-center justify-between">
+              <Inspector label="verifier · deterministic code assertion" accent="text-pass">
+                <div className="flex items-center justify-between gap-2">
                   <span className="font-mono text-[12px] text-muted tnum">
                     <span className="text-fail">{data.verify.eval.before.decision} ${data.verify.eval.before.amount}</span>
                     {" → "}
@@ -119,7 +150,10 @@ export default function Panels({ data, stage }: { data: LoopResult; stage: numbe
                   </span>
                   <span className="rounded-full bg-pass/15 px-2.5 py-0.5 font-mono text-[11px] font-semibold text-pass">✓ verified</span>
                 </div>
-                <p className="mt-2 font-mono text-[10.5px] text-muted">assert: {data.verify.eval.assertion}</p>
+                <pre className="mt-2 overflow-auto whitespace-pre-wrap rounded border border-pass/30 bg-bg/60 p-2 font-mono text-[10.5px] leading-snug text-fg/80">{data.verify.eval.assertion}</pre>
+                <p className="mt-1.5 text-[11px] leading-snug text-muted">
+                  Ground truth is this assertion on the live re-run — <span className="text-fg/70">not a model grading itself</span>. <span className="text-fail/80">RED</span> before the repair, <span className="text-pass/80">GREEN</span> after.
+                </p>
               </Inspector>
             )}
           </motion.div>

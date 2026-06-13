@@ -8,9 +8,9 @@ export const RECORDED_LESSONS = ([
     "failureClass": "wrong-policy-in-prompt",
     "agent": "refund-classifier",
     "culprit": "Classifier",
-    "rootCause": "The prompt encodes an incorrect return-window rule. It instructs the classifier to treat a return as valid only within the SAME CALENDAR MONTH as the purchase, and to classify OUT_OF_WINDOW whenever the request month differs from the purchase month. The authoritative policy actually defines the window as 30 CALENDAR DAYS from the purchase date. This caused a request made 13 days after purchase (which spanned into a different calendar month) to be wrongly classified as OUT_OF_WINDOW instead of WITHIN_WINDOW_DEFECTIVE.",
+    "rootCause": "The prompt encoded an incorrect return-window rule. It defined the window as the 'SAME CALENDAR MONTH' as the purchase date, causing it to classify any cross-month request as OUT_OF_WINDOW. The authoritative policy defines the window as 30 calendar days from the purchase date, so a 13-day-old defective claim was wrongly marked OUT_OF_WINDOW instead of WITHIN_WINDOW_DEFECTIVE.",
     "repairSummary": "Replace the calendar-month rule with a 30-day window.",
-    "patchedPrompt": "You classify a refund claim into exactly one category.\nCategories: WITHIN_WINDOW_DEFECTIVE, OUT_OF_WINDOW, FINAL_SALE, BUYER_REMORSE.\n\nReturn-window policy (apply literally):\n- The return window is 30 CALENDAR DAYS from the purchase date. A request is WITHIN the window if it is made on or before the 30th calendar day after the purchase date; it is outside the window if made after 30 days. Do NOT use calendar months to determine the window.\n- If the item is marked final sale, classify FINAL_SALE.\n- If the request is made more than 30 calendar days after the purchase date, classify OUT_OF_WINDOW.\n- If the reason is change-of-mind with no defect (and the item is not final sale), classify BUYER_REMORSE.\n- If the item is defective on arrival and the request is within the 30-day window (and the item is not final sale), classify WITHIN_WINDOW_DEFECTIVE.",
+    "patchedPrompt": "You classify a refund claim into exactly one category.\nCategories: WITHIN_WINDOW_DEFECTIVE, OUT_OF_WINDOW, FINAL_SALE, BUYER_REMORSE.\n\nReturn-window policy (apply literally):\n- The return window is 30 CALENDAR DAYS from the purchase date. A request is WITHIN the window if it is made 30 or fewer calendar days after the purchase date; it is OUT of the window if made more than 30 calendar days after the purchase date.\n- If the request is made more than 30 calendar days after the purchase date, classify OUT_OF_WINDOW.\n- If the item is marked final sale, classify FINAL_SALE.\n- If the reason is change-of-mind with no defect, classify BUYER_REMORSE.\n- If the item is defective and the request is within the 30-day window (and the item is not final sale), classify WITHIN_WINDOW_DEFECTIVE.\n- Otherwise classify WITHIN_WINDOW_DEFECTIVE.",
     "evidence": {
       "before": "DENY · $0",
       "after": "APPROVE · $240"
@@ -132,9 +132,9 @@ export const RECORDED_PREVENTION = ({
       "failureClass": "wrong-policy-in-prompt",
       "agent": "refund-classifier",
       "culprit": "Classifier",
-      "rootCause": "The prompt encodes an incorrect return-window rule. It instructs the classifier to treat a return as valid only within the SAME CALENDAR MONTH as the purchase, and to classify OUT_OF_WINDOW whenever the request month differs from the purchase month. The authoritative policy actually defines the window as 30 CALENDAR DAYS from the purchase date. This caused a request made 13 days after purchase (which spanned into a different calendar month) to be wrongly classified as OUT_OF_WINDOW instead of WITHIN_WINDOW_DEFECTIVE.",
+      "rootCause": "The prompt encoded an incorrect return-window rule. It defined the window as the 'SAME CALENDAR MONTH' as the purchase date, causing it to classify any cross-month request as OUT_OF_WINDOW. The authoritative policy defines the window as 30 calendar days from the purchase date, so a 13-day-old defective claim was wrongly marked OUT_OF_WINDOW instead of WITHIN_WINDOW_DEFECTIVE.",
       "repairSummary": "Replace the calendar-month rule with a 30-day window.",
-      "patchedPrompt": "You classify a refund claim into exactly one category.\nCategories: WITHIN_WINDOW_DEFECTIVE, OUT_OF_WINDOW, FINAL_SALE, BUYER_REMORSE.\n\nReturn-window policy (apply literally):\n- The return window is 30 CALENDAR DAYS from the purchase date. A request is WITHIN the window if it is made on or before the 30th calendar day after the purchase date; it is outside the window if made after 30 days. Do NOT use calendar months to determine the window.\n- If the item is marked final sale, classify FINAL_SALE.\n- If the request is made more than 30 calendar days after the purchase date, classify OUT_OF_WINDOW.\n- If the reason is change-of-mind with no defect (and the item is not final sale), classify BUYER_REMORSE.\n- If the item is defective on arrival and the request is within the 30-day window (and the item is not final sale), classify WITHIN_WINDOW_DEFECTIVE.",
+      "patchedPrompt": "You classify a refund claim into exactly one category.\nCategories: WITHIN_WINDOW_DEFECTIVE, OUT_OF_WINDOW, FINAL_SALE, BUYER_REMORSE.\n\nReturn-window policy (apply literally):\n- The return window is 30 CALENDAR DAYS from the purchase date. A request is WITHIN the window if it is made 30 or fewer calendar days after the purchase date; it is OUT of the window if made more than 30 calendar days after the purchase date.\n- If the request is made more than 30 calendar days after the purchase date, classify OUT_OF_WINDOW.\n- If the item is marked final sale, classify FINAL_SALE.\n- If the reason is change-of-mind with no defect, classify BUYER_REMORSE.\n- If the item is defective and the request is within the 30-day window (and the item is not final sale), classify WITHIN_WINDOW_DEFECTIVE.\n- Otherwise classify WITHIN_WINDOW_DEFECTIVE.",
       "evidence": {
         "before": "DENY · $0",
         "after": "APPROVE · $240"
@@ -152,7 +152,7 @@ export const RECORDED_PREVENTION = ({
       ]
     },
     "confidence": 0.78,
-    "rationale": "Both failures involve a classifier applying a wrong date-window policy. Here a 13-day-old purchase was marked OUT_OF_WINDOW, suggesting the warranty window logic is misconfigured—analogous to WL-001's incorrect date-window interpretation in the classification prompt. The mechanism (wrong policy/window encoded in classifier) matches, though domain differs (warranty vs refund)."
+    "rationale": "The warranty classifier wrongly marked a 13-day-old purchase as OUT_OF_WINDOW, mirroring WL-001's mechanism: a policy/date-window misconfiguration in the classifier causing items within the valid window to be classified as outside it. Same underlying failure (wrong date-window policy in classification logic), different domain."
   },
   "prevented": {
     "decision": "APPROVE",
@@ -160,47 +160,47 @@ export const RECORDED_PREVENTION = ({
     "pass": true
   },
   "usage": {
-    "input": 5520,
-    "output": 510
+    "input": 5561,
+    "output": 498
   }
 }) as unknown as PreventionResult;
 export const RECORDED_GATE = ([
   {
     "candidate": {
       "agent": "refund-classifier",
-      "label": "v2.1 — 'current calendar month' rule",
-      "promptSnippet": "A return is valid only if it is requested during the same calendar month as the purchase; requests in any later month are OUT_OF_WINDOW."
+      "label": "v2.1 — 'within the billing period' rule",
+      "promptSnippet": "A return is valid only if it is filed within the same billing period as the purchase, where each period runs from the 1st to the last day of a month."
     },
     "checks": [
       {
         "lessonId": "WL-001",
         "failureClass": "wrong-policy-in-prompt",
         "risk": "high",
-        "why": "The candidate reintroduces the exact root cause from WL-001: encoding a same-calendar-month return rule instead of the authoritative 30-calendar-day window, on the same refund-classifier agent. This would again misclassify in-window requests that span month boundaries as OUT_OF_WINDOW."
+        "why": "This repeats the exact root-cause mechanism from WL-001: the prompt encodes a calendar-month/billing-period window instead of the authoritative 30-calendar-days-from-purchase rule. Same agent, same failure class (wrong-policy-in-prompt), and it would again wrongly classify cross-month requests as out-of-window."
       },
       {
         "lessonId": "WL-002",
         "failureClass": "date-format-misparse",
-        "risk": "none",
-        "why": "The lesson concerns date-format misparsing (US vs EU) in an invoice-extractor. The candidate change is a different agent (refund-classifier) with a calendar-month window rule, which doesn't involve parsing ambiguous date formats. No shared root-cause mechanism, though a separate edge case (month-boundary fairness) exists outside this lesson's scope."
+        "risk": "low",
+        "why": "Different agent and failure class (refund-classifier vs invoice-extractor date-misparse). However, the rule involves date handling and billing periods, which could touch on date-parsing ambiguity; root-cause mechanism (locale date-format assumption) is not directly repeated, but timezone/period-boundary edge cases warrant mild caution."
       },
       {
         "lessonId": "WL-003",
         "failureClass": "misrouting",
         "risk": "none",
-        "why": "The lesson concerns keyword-overlap misrouting in a support-router. The candidate change is a refund-classifier window rule with no routing or keyword-matching mechanism, so it does not repeat the lesson's root cause."
+        "why": "The lesson concerns keyword-overlap misrouting in support-router. This change is a refund-classifier validity rule about billing periods, with no routing logic or keyword-overlap mechanism. Different agent and failure class; no reintroduction of the root cause."
       },
       {
         "lessonId": "WL-004",
         "failureClass": "prompt-injection",
         "risk": "none",
-        "why": "The lesson concerns prompt-injection in a contract-summarizer (treating document text as instructions). The candidate change is a deterministic refund-window business rule for a different agent with no mechanism for ingesting or acting on untrusted text as instructions. No reintroduction of the prompt-injection root cause."
+        "why": "The lesson concerns prompt-injection in a contract-summarizer treating document text as instructions. The candidate change is a refund-classifier business rule about return timing windows; it does not involve ingesting untrusted document text as instructions, so it does not repeat the root-cause mechanism."
       },
       {
         "lessonId": "WL-005",
         "failureClass": "retry-storm",
         "risk": "none",
-        "why": "The candidate change is a business-logic rule about return validity windows for a refund-classifier agent. It has nothing to do with retry behavior, backoff, or tool timeouts, so it does not reintroduce the retry-storm failure class."
+        "why": "The candidate change is a business-logic rule about return validity windows for a refund-classifier, unrelated to retry/backoff mechanics. It does not touch tool retry behavior, so it cannot reintroduce the retry-storm failure class from WL-005."
       }
     ],
     "gate": "BLOCK",
@@ -208,8 +208,8 @@ export const RECORDED_GATE = ([
       "WL-001"
     ],
     "usage": {
-      "input": 2872,
-      "output": 528
+      "input": 2819,
+      "output": 542
     }
   },
   {
@@ -223,38 +223,38 @@ export const RECORDED_GATE = ([
         "lessonId": "WL-001",
         "failureClass": "wrong-policy-in-prompt",
         "risk": "none",
-        "why": "The candidate change explicitly corrects the root cause by defining the window as 30 calendar days from purchase date regardless of month boundary, which is the authoritative policy. It does not reintroduce the calendar-month error."
+        "why": "The candidate change correctly encodes the authoritative 30-calendar-day rule and explicitly removes the month-boundary dependency that caused WL-001. It fixes the root cause rather than reintroducing it."
       },
       {
         "lessonId": "WL-002",
         "failureClass": "date-format-misparse",
         "risk": "low",
-        "why": "Different agent and failure class; this rule involves date arithmetic (30-day window) rather than parsing ambiguous date formats. The root cause (locale-based date format assumption) isn't directly repeated, but any date handling carries some residual misparse risk if input dates aren't normalized."
+        "why": "Different agent (refund-classifier vs invoice-extractor) and the rule uses calendar-day arithmetic rather than parsing locale-specific date strings. However, computing 30 days from a purchase date still depends on correctly parsing dates; if input dates are ambiguous US/EU formats, the same misparse root cause could affect day-count calculations. The rule itself doesn't address date parsing, so residual but not direct risk."
       },
       {
         "lessonId": "WL-003",
         "failureClass": "misrouting",
         "risk": "none",
-        "why": "The lesson concerns keyword-overlap misrouting in the support-router agent. This change is for a different agent (refund-classifier) and addresses date-window validity for returns, with no routing or keyword-overlap mechanism. It does not repeat the lesson's root cause."
+        "why": "The candidate change concerns a refund-classifier's return-window validity rule based on calendar days, which is unrelated to the lesson's root cause of keyword-overlap misrouting in the support-router agent. Different agent, different failure class, and no shared root-cause mechanism."
       },
       {
         "lessonId": "WL-004",
         "failureClass": "prompt-injection",
         "risk": "none",
-        "why": "The candidate change is a refund-classifier business rule about return windows, unrelated to the contract-summarizer prompt-injection lesson. It does not treat document text as instructions or share the root-cause mechanism."
+        "why": "The candidate change is a deterministic refund-classification rule for a different agent and does not involve treating untrusted document text as instructions, so it does not reintroduce the prompt-injection root cause from WL-004."
       },
       {
         "lessonId": "WL-005",
         "failureClass": "retry-storm",
         "risk": "none",
-        "why": "The candidate change is a business-logic rule for refund validity in a different agent (refund-classifier) and has nothing to do with retry behavior, backoff, or tool timeouts. It does not repeat the retry-storm root-cause mechanism."
+        "why": "The candidate change is a business logic rule about refund validity windows for the refund-classifier agent. It has no connection to retry behavior, backoff, or tool timeouts—the root cause of the WL-005 retry-storm lesson. Different agent, different failure mechanism."
       }
     ],
     "gate": "PASS",
     "blockedBy": [],
     "usage": {
-      "input": 2817,
-      "output": 457
+      "input": 2779,
+      "output": 513
     }
   }
 ]) as unknown as GateResult[];

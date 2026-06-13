@@ -6,7 +6,7 @@ import { runFullLoop } from "../lib/worldline/loop";
 import { mintLesson, runPrevention, gateCandidate, CANDIDATES, SEED_LESSONS } from "../lib/worldline/knowledge";
 
 (async () => {
-  const r = await runFullLoop();
+  const r = await runFullLoop({ probeAll: true });
   if (!r.verify.eval.passed || r.bisect.culpritId !== "classify") {
     console.error("Refusing to record a non-golden run:", r.bisect.culpritId, r.verify.eval.passed);
     process.exit(1);

@@ -6,21 +6,21 @@
 > "Tracing tells you what happened. WorldLine tells you what *would* have happened — it forks a failed agent run at the decision that mattered, re-simulates the future live, and proves the fix."
 
 ## 3-minute live demo (beats)
-1. **0:00 — Hook (15s).** Land on the hero: *"Your agent failed. Which decision actually mattered?"* "This is a refund pipeline — 6 agents. It just denied a valid claim. Watch." Click **Run the workflow**.
-2. **0:15 — The failure (20s).** The red worldline draws: Intake → Classifier → … → **DENY · $0 · FAIL**. "Six steps, one wrong answer. Which one caused it? Today you'd read traces and guess."
-3. **0:35 — Auto-bisect (30s).** Stage to **Auto-bisect**. "Claude audits each decision against the policy. It clears the final Decision agent — *it correctly applied its input* — and flags the **Classifier** as wrong, then **forks and re-simulates** to confirm that fixing it actually flips the outcome. That's intervention-tested attribution, not a guess."
-4. **1:05 — The fork (25s).** Stage to **Fork** + **Re-simulate**: the **green** counterfactual branch peels off the Classifier; the tail re-runs **live on Opus 4.8**; the outcome flips **red → green: APPROVE · $240 · PASS**.
-5. **1:30 — Diagnosis + repair (35s).** Stage to **Diagnose / Author repair**: "Claude finds the root cause — the prompt encoded *'same calendar month'* instead of the real 30-day window — and rewrites the prompt." Show the red/green prompt diff.
-6. **2:05 — Proof (25s).** Stage to **Verify**: "It re-runs the *entire* workflow with the patch and asserts the outcome. ✓ REPAIR VERIFIED — before DENY/$0, after APPROVE/$240." This is the self-verifying loop.
-7. **2:30 — It's real, not a movie (20s).** Click **Re-run live** → the badge flips to **● LIVE · opus-4.8 · ~7k tok**, the whole loop recomputes on the deployed backend. "Everything you saw just ran live."
-8. **2:50 — Close (10s).** "LangGraph and AgentOps already do replay and forking. WorldLine is the loop on top: auto-find the culprit, author the repair, prove it. Git-bisect for agent decisions."
+1. **0:00 — Hook (15s).** Land on the hero: *"Your agent failed. Which decision actually mattered?"* "This is a refund pipeline — a 7-step agent run. It just denied a valid claim. Watch." Scroll to the simulator (auto-runs).
+2. **0:15 — The failure (15s).** The red worldline draws: Intake → Fraud → Classifier → … → **DENY · $0 · FAIL**. "Seven steps, one wrong answer. Which one caused it? Today you'd read traces and guess."
+3. **0:30 — Attribution = parallel intervention test + a decoy (35s).** Stage to **Auto-bisect**. "Claude intervention-tests *every* decision in parallel — you can see the forked probes." Point to the counter: **4 tested · 3 ruled innocent · 1 culprit.** "Naive last-touch blame points at the **Decision** agent — it's literally what denied the claim. But force it to APPROVE and the payout's still **$0** — the money's wrong upstream. Exonerated. The three innocents stay red; only correcting the **Classifier** flips the outcome. That's causal attribution, not a guess."
+4. **1:05 — The fork (20s).** Stage to **Fork** + **Re-simulate**: the **green** branch peels off the Classifier; the tail re-runs **live on Opus 4.8**; the outcome flips **red → green: APPROVE · $240 · PASS**.
+5. **1:25 — Repair + the trust anchor (30s).** Stage to **Diagnose / Repair / Verify**: "Claude (effort=max) names the root cause — *'same calendar month'* instead of the real 30-day window — and rewrites the prompt." Show the red/green diff, then the **deterministic assertion** `decision==="APPROVE" && amount===240`: "Ground truth is this code assertion on the live re-run — **not a model grading itself.** RED before, GREEN after."
+6. **1:55 — Institutional memory: the same mistake never ships twice (45s).** Scroll to **Memory**. "That verified fix becomes a durable lesson. Here's a *different* agent — a warranty desk — about to ship the same failure class. Its prompt says **'billing cycle'**, not 'calendar month' — different words. WorldLine matches on the **mechanism**, not text, and applies the verified fix: **$520 wrongful denial prevented**, no re-debugging." Then the **pre-ship gate**: "Every lesson becomes a CI check. This candidate reworded the bug as **'within the billing period'** — lexically nothing like the original. **BLOCKED.** The clean 30-day rule clears." Point to the **ROI** panel: "Opus-max debugs once; every prevention and gate after is near-free."
+7. **2:40 — It's real, not a movie (15s).** Click **Re-run live** → badge flips to **● LIVE · opus-4.8**, the whole loop recomputes on the deployed backend. "Everything you saw just ran live."
+8. **2:55 — Close (5s).** "Tracing shows what happened. WorldLine is the causal loop on top — and it makes your whole fleet stop repeating itself."
 
 ## 1-minute video outline (submission)
-- 0:00–0:08 hero + one-liner.
-- 0:08–0:25 Run → red FAIL worldline.
-- 0:25–0:40 auto-bisect flags Classifier → green fork → red→green flip.
-- 0:40–0:52 diagnosis + prompt diff + **✓ REPAIR VERIFIED**.
-- 0:52–1:00 **Re-run live** badge + "tests green, live URL, public repo."
+- 0:00–0:07 hero + one-liner.
+- 0:07–0:20 Run → red FAIL worldline → the parallel probes + **4 tested · 3 innocent · 1 culprit** (decoy exonerated).
+- 0:20–0:33 green fork → red→green flip → prompt diff + **assertion** ✓ verified.
+- 0:33–0:50 Memory: divergent-wording prevention (**$520 caught**) + gate **BLOCKS** the reworded regression.
+- 0:50–1:00 **Re-run live** badge + "8/8 tests, live URL, public repo."
 
 ## Judging narrative (what we gave the model + the self-fix moment)
 - **Brief + rubric** (`brief.md`, `rubric.md`) define the problem and gradeable PASS/FAIL "done."

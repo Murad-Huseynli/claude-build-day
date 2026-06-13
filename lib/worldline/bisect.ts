@@ -54,7 +54,24 @@ async function auditNode(base: Run, ctx: Ctx, stepId: string, name: string): Pro
   };
 }
 
-export async function autoBisect(base: Run, ctx: Ctx, addUsage: (u: Usage) => void): Promise<BisectResult> {
+/** A plausible counterfactual to probe an audited-correct node with (to show it does NOT flip). */
+function probeValue(stepId: string, output: Record<string, unknown>): State | null {
+  if (stepId === "decision") return { decision: output.decision === "DENY" ? "APPROVE" : "DENY", rationale: "counterfactual probe" };
+  if (stepId === "fraud_check") return { fraudRisk: "HIGH", fraudReason: "counterfactual probe" };
+  if (stepId === "intake") return { ...output, finalSale: true };
+  return null;
+}
+
+/** A short human label for the counterfactual value injected at a node. */
+function probeLabel(stepId: string, value: State): string {
+  if (stepId === "classify") return `category → ${value.category}`;
+  if (stepId === "decision") return `force ${value.decision}`;
+  if (stepId === "fraud_check") return `fraudRisk → ${value.fraudRisk}`;
+  if (stepId === "intake") return `finalSale → ${value.finalSale}`;
+  return "counterfactual";
+}
+
+export async function autoBisect(base: Run, ctx: Ctx, addUsage: (u: Usage) => void, probeAll = false): Promise<BisectResult> {
   const candidates = STEPS.filter((s) => s.intervenable && base.records.some((r) => r.stepId === s.id));
 
   // 1) Audit every candidate node in PARALLEL.
@@ -62,18 +79,25 @@ export async function autoBisect(base: Run, ctx: Ctx, addUsage: (u: Usage) => vo
   for (const a of audited) addUsage(a.usage);
   const evidence = audited.map((a) => a.ev);
 
-  // 2) For each wrong node (in pipeline order), fork with the correction and test the flip.
+  // 2) Intervention-test each candidate. Wrong nodes get their corrected value; with
+  //    probeAll, audited-correct nodes are also probed with a plausible alternative to
+  //    SHOW they don't flip the outcome (the explored dead-ends).
   let culpritId: string | null = null;
   let culpritName: string | null = null;
   let forkRunRes: Run | undefined;
   for (const step of candidates) {
     const ev = evidence.find((e) => e.nodeId === step.id)!;
-    if (!ev.correctOutput) continue;
+    const recOut = (base.records.find((r) => r.stepId === step.id)?.output ?? {}) as Record<string, unknown>;
+    const value = ev.correctOutput ?? (probeAll ? probeValue(step.id, recOut) : null);
+    if (!value) continue;
     ev.intervened = true;
-    const forked = await forkRun(base, ctx, step.id, ev.correctOutput, "bisect-" + step.id);
+    ev.probedTo = probeLabel(step.id, value);
+    const forked = await forkRun(base, ctx, step.id, value, "bisect-" + step.id);
     for (const r of forked.records) if (r.usage) addUsage(r.usage);
     ev.flipped = forked.outcome.pass;
-    if (forked.outcome.pass && !culpritId) {
+    ev.result = { decision: forked.outcome.decision, amount: forked.outcome.amount };
+    // only a node that was audited WRONG and flips the outcome is the culprit
+    if (forked.outcome.pass && ev.correctOutput && !culpritId) {
       culpritId = step.id;
       culpritName = step.name;
       forkRunRes = forked;

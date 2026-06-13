@@ -14,7 +14,7 @@ const MAX_STAGE = 7;
 
 const STAGE_COPY: Record<number, { k: string; t: string }> = {
   1: { k: "01 · the failure", t: "A 7-step agent pipeline denies a valid claim — one wrong decision cascades to the rest." },
-  2: { k: "02 · auto-bisect", t: "Claude audits every decision against policy — and rules out the innocents." },
+  2: { k: "02 · auto-bisect", t: "Claude intervention-tests every decision in parallel — and rules out the suspects that only look guilty." },
   3: { k: "03 · fork", t: "The timeline forks at the culprit; the future re-simulates live." },
   4: { k: "04 · flip", t: "Same claim, one decision changed — the outcome flips red → green." },
   5: { k: "05 · diagnose", t: "Claude names the root cause: a wrong policy baked into the prompt." },
@@ -250,7 +250,7 @@ export default function Home() {
         <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {[
             { n: "01", t: "Detect", d: "A multi-agent run returns the wrong outcome. WorldLine treats the failure as a signal, not a dead end." },
-            { n: "02", t: "Attribute", d: "Claude audits every decision in parallel and intervention-tests each — only the decision that flips the outcome is the culprit." },
+            { n: "02", t: "Attribute", d: "Claude intervention-tests every decision in parallel — only the one whose correction flips the outcome is the culprit, even when last-touch blame points elsewhere." },
             { n: "03", t: "Repair", d: "Claude (effort=max) explains the root cause and rewrites the offending prompt or policy." },
             { n: "04", t: "Verify", d: "The full workflow re-runs with the patch; a code assertion proves the outcome flipped." },
             { n: "05", t: "Remember", d: "The verified fix becomes a durable lesson in fleet memory — failure class, root cause, proof, and the agents it protects." },
