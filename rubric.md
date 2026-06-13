@@ -14,6 +14,8 @@ Claude grades the build against these. Each criterion is PASS/FAIL with concrete
 - **R7 — Live URL 200.** Production alias returns 200, publicly (no auth wall), and runs the golden scenario.
 - **R8 — Three.js reveals real behavior.** The 3D shows the actual run structure + the counterfactual branch — not decoration. One cinematic interaction, not a graph editor.
 
+- **R12 — Institutional memory / recurrence prevention.** A verified fix is stored as a lesson; a *different* agent about to repeat the same failure class is matched to that lesson and repaired with the verified fix without re-debugging. *Evidence: `npx tsx scripts/prove-memory.ts`, `POST /api/memory`, the live "Memory" section.*
+
 ## GUARDRAILS — disqualifiers / positioning (must all PASS)
 - **R9 — Not a prohibited shape.** Interactive counterfactual simulator, not a dashboard-as-product, RAG, Streamlit, or any banned category.
 - **R10 — Positioning is honest.** No "nobody has time travel/forking" claims anywhere; the "Existing tools vs WorldLine" table is present; uses "intervention-tested attribution," not "mathematical causality."

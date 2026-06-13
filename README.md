@@ -1,6 +1,6 @@
 # WorldLine
 
-**A flight simulator for agent failures.** Fork any decision in a failed multi-agent run, re-simulate the future live, and let Claude **auto-find the decision that mattered** and **prove the repair**.
+**A flight simulator for agent failures.** Fork any decision in a failed multi-agent run, re-simulate the future live, and let Claude **auto-find the decision that mattered** and **prove the repair** — then file it as **fleet memory** so the same failure class never ships twice.
 
 🔗 **Live:** https://claude-build-day-alpha.vercel.app
 🧪 Built at **Claude Build Day 2026** with **Claude Opus 4.8** (`claude-opus-4-8`).

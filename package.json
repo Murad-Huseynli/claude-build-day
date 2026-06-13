@@ -9,6 +9,7 @@
     "lint": "eslint",
     "test": "vitest run",
     "prove": "tsx scripts/prove.ts",
+    "prove:memory": "tsx scripts/prove-memory.ts",
     "record": "tsx scripts/record.ts"
   },
   "dependencies": {

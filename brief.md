@@ -1,7 +1,9 @@
 # WorldLine — Brief
 
 **One-liner:** WorldLine is a *flight simulator for agent failures*. Fork any decision in a failed multi-agent run, re-simulate the future live, and let Claude **auto-find the decision that mattered** and **prove the repair**.
-*(Engineer hook: "git-bisect for agent decisions.")*
+Every intervention-tested fix then becomes **fleet memory** — so when any agent (even a different one) is about to repeat that failure class, WorldLine catches it and applies the verified fix *before it ships*.
+
+*(Engineer hook: "git-bisect for agent decisions" — with a memory.)*
 
 ## Problem
 Multi-agent systems fail in non-deterministic, multi-step ways: the same input yields different paths, so failures are hard to reproduce and harder to attribute. When a multi-agent pipeline returns the wrong answer, *which decision* caused it? Today teams read traces and guess.
@@ -19,6 +21,11 @@ AI-engineering and platform teams shipping multi-agent systems. ROI: hours→min
 7. Claude proposes a **prompt/policy repair** (structured patch).
 8. A **verifier** re-runs the whole scenario with the repair and asserts the outcome passes.
 9. UI shows a clean **"repair verified"** result.
+
+## The bigger product: institutional memory (continual learning)
+A one-off fix is a debugger; WorldLine's durable value is the **memory**. Each verified fix is stored as a structured lesson — failure class, root cause, the proven repair, before→after evidence, and the agents it protects. New and existing agents are checked against that memory, so a known failure class **never ships twice**: the fleet gets more reliable over time and new agents inherit the org's hard-won lessons. ROI: fewer production incidents, less repeated debugging, institutional knowledge that compounds.
+
+**vs the field:** Arize/Phoenix *observe*; Judgment Labs do *evals / continuous-improvement*; LangGraph & AgentOps do *replay / fork*. WorldLine's unit of memory is a **causal, intervention-tested, verified-repair lesson** (not a logged eval regression), applied **pre-emptively** to prevent recurrence — an active operating layer, not a passive dashboard.
 
 ## Existing tools vs WorldLine
 Replay and forking already exist — we build the *product loop* on top.
