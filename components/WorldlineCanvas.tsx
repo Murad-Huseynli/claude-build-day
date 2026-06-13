@@ -49,6 +49,7 @@ interface NodeSpec {
   lit: number;
   delay: number;
   emphasis?: boolean;
+  dimAt?: number;
 }
 
 function Node({ spec, stage, halo, t0 }: { spec: NodeSpec; stage: number; halo: THREE.Texture | null; t0: MutableRefObject<number> }) {
@@ -62,7 +63,8 @@ function Node({ spec, stage, halo, t0 }: { spec: NodeSpec; stage: number; halo: 
     const want = active ? 1 : 0.0001;
     grp.current.scale.setScalar(grp.current.scale.x + (want - grp.current.scale.x) * 0.16);
     const pulse = spec.emphasis && stage >= 2 && stage <= 3 ? 0.6 + Math.sin(clock.elapsedTime * 3.2) * 0.5 : 0;
-    const baseE = active && lit ? (spec.emphasis ? 2.0 : 1.15) : 0.06;
+    const baseE0 = active && lit ? (spec.emphasis ? 2.0 : 1.15) : 0.06;
+    const baseE = spec.dimAt && stage >= spec.dimAt ? baseE0 * 0.22 : baseE0;
     if (core.current) core.current.emissiveIntensity += (baseE + pulse - core.current.emissiveIntensity) * 0.18;
     if (hmat.current) hmat.current.opacity += ((active && lit ? 0.75 : 0.1) + pulse * 0.25 - hmat.current.opacity) * 0.18;
   });
@@ -81,9 +83,17 @@ function Node({ spec, stage, halo, t0 }: { spec: NodeSpec; stage: number; halo: 
   );
 }
 
-function Edge({ a, b, color, reveal, stage }: { a: [number, number, number]; b: [number, number, number]; color: string; reveal: number; stage: number }) {
-  if (stage < reveal) return null;
-  return <Line points={[a, b]} color={color} lineWidth={2.2} transparent opacity={0.5} />;
+function Edge({ a, b, color, reveal, delay, stage, t0 }: { a: [number, number, number]; b: [number, number, number]; color: string; reveal: number; delay: number; stage: number; t0: MutableRefObject<number> }) {
+  const ref = useRef<{ material?: { opacity: number } }>(null);
+  useFrame(({ clock }) => {
+    const m = ref.current?.material;
+    if (!m) return;
+    const local = clock.elapsedTime - t0.current - delay;
+    const target = stage >= reveal && local > 0 ? 0.5 : 0;
+    m.opacity += (target - m.opacity) * 0.12;
+  });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return <Line ref={ref as any} points={[a, b]} color={color} lineWidth={2.2} transparent opacity={0} />;
 }
 
 function Scene({ data, stage, vertical }: { data: LoopResult; stage: number; vertical: boolean }) {
@@ -114,17 +124,17 @@ function Scene({ data, stage, vertical }: { data: LoopResult; stage: number; ver
       delay: i * 0.06,
       emphasis: id === culprit,
     }));
-    nodes.push({ key: "outcomeR", p: P("outcome"), color: COL.fail, size: 0.42, reveal: 1, lit: 1, delay: 0.45 });
+    nodes.push({ key: "outcomeR", p: P("outcome"), color: COL.fail, size: 0.42, reveal: 1, lit: 1, delay: 0.45, dimAt: 4 });
     const cf = ["retrieve_policy", "eligibility", "amount", "decision"];
     cf.forEach((id, i) => nodes.push({ key: "cf_" + id, p: P(id, true), color: COL.pass, size: ruleIds.has(id) ? 0.22 : 0.34, reveal: 3, lit: 3, delay: i * 0.13 }));
     nodes.push({ key: "outcomeG", p: P("outcome", true), color: COL.pass, size: 0.42, reveal: 3, lit: 4, delay: 0.55 });
 
-    const edges: { a: [number, number, number]; b: [number, number, number]; color: string; reveal: number }[] = [];
-    for (let i = 0; i < orig.length - 1; i++) edges.push({ a: P(orig[i]), b: P(orig[i + 1]), color: i >= 2 ? COL.fail : COL.neutral, reveal: 1 });
-    edges.push({ a: P("decision"), b: P("outcome"), color: COL.fail, reveal: 1 });
-    edges.push({ a: P("classify"), b: P("retrieve_policy", true), color: COL.pass, reveal: 3 });
-    for (let i = 0; i < cf.length - 1; i++) edges.push({ a: P(cf[i], true), b: P(cf[i + 1], true), color: COL.pass, reveal: 3 });
-    edges.push({ a: P("decision", true), b: P("outcome", true), color: COL.pass, reveal: 3 });
+    const edges: { a: [number, number, number]; b: [number, number, number]; color: string; reveal: number; delay: number }[] = [];
+    for (let i = 0; i < orig.length - 1; i++) edges.push({ a: P(orig[i]), b: P(orig[i + 1]), color: i >= 2 ? COL.fail : COL.neutral, reveal: 1, delay: i * 0.06 });
+    edges.push({ a: P("decision"), b: P("outcome"), color: COL.fail, reveal: 1, delay: 0.42 });
+    edges.push({ a: P("classify"), b: P("retrieve_policy", true), color: COL.pass, reveal: 3, delay: 0 });
+    for (let i = 0; i < cf.length - 1; i++) edges.push({ a: P(cf[i], true), b: P(cf[i + 1], true), color: COL.pass, reveal: 3, delay: (i + 1) * 0.13 });
+    edges.push({ a: P("decision", true), b: P("outcome", true), color: COL.pass, reveal: 3, delay: 0.5 });
     return { nodes, edges };
   }, [data, vertical]);
 
@@ -136,7 +146,7 @@ function Scene({ data, stage, vertical }: { data: LoopResult; stage: number; ver
       <Stars radius={70} depth={45} count={520} factor={2.4} fade speed={0.25} />
       <group ref={group}>
         {edges.map((e, i) => (
-          <Edge key={i} {...e} stage={stage} />
+          <Edge key={i} {...e} stage={stage} t0={t0} />
         ))}
         {nodes.map((n) => (
           <Node key={n.key} spec={n} stage={stage} halo={halo} t0={t0} />
