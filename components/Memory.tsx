@@ -1,18 +1,14 @@
 "use client";
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
+import KnowledgeGraph, { type GraphLesson } from "@/components/KnowledgeGraph";
 
-interface Lesson {
-  id: string;
-  title: string;
-  failureClass: string;
-  agent: string;
+interface Lesson extends GraphLesson {
   rootCause: string;
   repairSummary: string;
   evidence: { before: string; after: string };
   tags: string[];
   mintedAt: string;
-  protects: string[];
 }
 interface Prevention {
   agent: string;
@@ -26,19 +22,12 @@ interface MemData {
   prevention: Prevention;
 }
 
-const CLASS_DOT: Record<string, string> = {
-  "wrong-policy-in-prompt": "bg-warn",
-  "date-format-misparse": "bg-accent",
-  misrouting: "bg-accent",
-  "prompt-injection": "bg-fail",
-  "retry-storm": "bg-pass",
-};
-
 export default function Memory() {
   const [data, setData] = useState<MemData | null>(null);
   const [live, setLive] = useState(false);
   const [busy, setBusy] = useState(false);
   const [sel, setSel] = useState<string | null>(null);
+  const [gen, setGen] = useState(0); // bump to replay the graph populate animation
 
   useEffect(() => {
     fetch("/api/memory").then((r) => r.json()).then(setData).catch(() => {});
@@ -52,6 +41,7 @@ export default function Memory() {
       if (!d.error) {
         setData(d);
         setLive(true);
+        setGen((g) => g + 1);
       }
     } finally {
       setBusy(false);
@@ -65,7 +55,7 @@ export default function Memory() {
 
   return (
     <div>
-      {/* recurrence-prevention graph: failing agent -> matched lesson -> prevented */}
+      {/* recurrence-prevention flow: failing agent → matched lesson → prevented */}
       <div className="grid items-stretch gap-3 md:grid-cols-[1fr_auto_1.1fr_auto_1fr]">
         <div className="rounded-xl border border-fail/30 bg-fail/[0.05] p-4">
           <div className="font-mono text-[10px] uppercase tracking-wider text-fail">new agent · {p.agent}</div>
@@ -96,54 +86,34 @@ export default function Memory() {
       </div>
 
       <div className="mt-4 flex flex-wrap items-center gap-3">
-        <button
-          onClick={checkLive}
-          disabled={busy}
-          className="rounded-full bg-pass/15 px-4 py-2 text-[13px] font-medium text-pass transition hover:bg-pass/25 disabled:opacity-50"
-        >
+        <button onClick={checkLive} disabled={busy} className="rounded-full bg-pass/15 px-4 py-2 text-[13px] font-medium text-pass transition hover:bg-pass/25 disabled:opacity-50">
           {busy ? "Checking live…" : "Check a new agent against memory →"}
+        </button>
+        <button onClick={() => setGen((g) => g + 1)} className="rounded-full border border-line px-4 py-2 text-[13px] font-medium text-fg transition hover:border-fg/30">
+          Replay memory growth
         </button>
         <span className="font-mono text-[11px] text-muted">
           <span className={live ? "text-pass" : "text-muted"}>● {live ? "LIVE" : "recorded"}</span> · {data.lessons.length} lessons in fleet memory
         </span>
       </div>
 
-      {/* the knowledge graph: accumulated lessons */}
-      <div className="mt-10">
-        <div className="mb-3 font-mono text-[10px] uppercase tracking-[0.18em] text-muted">fleet knowledge graph</div>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {data.lessons.map((l) => {
-            const isMatch = l.id === matchId;
-            return (
-              <button
-                key={l.id}
-                onClick={() => setSel(sel === l.id ? null : l.id)}
-                className={`rounded-xl border p-4 text-left transition hover:border-fg/30 ${isMatch ? "border-warn/40 bg-warn/[0.05]" : "border-line bg-panel/50"}`}
-              >
-                <div className="flex items-center gap-2">
-                  <span className={`h-2 w-2 rounded-full ${CLASS_DOT[l.failureClass] ?? "bg-muted"}`} />
-                  <span className="font-mono text-[10px] text-muted">{l.id}</span>
-                  {l.mintedAt === new Date().toISOString().slice(0, 10) && (
-                    <span className="rounded bg-pass/15 px-1.5 py-0.5 font-mono text-[9px] text-pass">just added</span>
-                  )}
-                </div>
-                <div className="mt-1.5 text-[13px] leading-snug text-fg/90">{l.title}</div>
-                <div className="mt-2 font-mono text-[10px] text-muted">{l.agent} · protects {l.protects.length}</div>
-              </button>
-            );
-          })}
-        </div>
+      {/* the live knowledge graph */}
+      <div className="mt-8 rounded-2xl border border-line bg-panel/30 p-3">
+        <KnowledgeGraph
+          lessons={data.lessons}
+          matchId={matchId}
+          highlightAgent={p.agent}
+          selectedId={sel}
+          onSelect={(id) => setSel(sel === id ? null : id)}
+          generation={gen}
+        />
+        <div className="px-2 pb-1 font-mono text-[10px] text-muted">click a lesson node to inspect it · the matched lesson pulses, its newly-protected agent lights green</div>
       </div>
 
       {/* lesson detail */}
       <AnimatePresence>
         {selLesson && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            className="mt-3 rounded-xl border border-line bg-panel/70 p-5 backdrop-blur-md"
-          >
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="mt-3 rounded-xl border border-line bg-panel/70 p-5 backdrop-blur-md">
             <div className="flex items-center justify-between">
               <span className="font-mono text-[11px] text-muted">{selLesson.id} · {selLesson.failureClass}</span>
               <span className="font-mono text-[12px] tnum">

@@ -127,8 +127,9 @@ export default function Home() {
             </span>
           </h1>
           <p className="mx-auto mt-6 max-w-xl text-pretty text-[15px] leading-relaxed text-muted md:text-lg">
-            WorldLine forks a failed multi-agent run at the decision that caused it, re-simulates the future live, and
-            lets Claude prove the repair. Tracing shows what happened — this shows what <em>would</em> have.
+            WorldLine forks a failed multi-agent run at the decision that caused it, re-simulates the future live, proves
+            the repair — then files it as <em>fleet memory</em> so the same failure never ships twice. Tracing shows what
+            happened; WorldLine makes your agents stop repeating it.
           </p>
           <div className="mt-9 flex items-center justify-center gap-3">
             <a href="#sim" className="rounded-full bg-accent px-6 py-3 text-[15px] font-semibold text-bg transition hover:brightness-110">
@@ -244,14 +245,16 @@ export default function Home() {
 
       {/* how it works */}
       <Section id="how">
-        <Eyebrow>How it works</Eyebrow>
-        <h2 className="mt-4 max-w-2xl font-serif text-3xl font-medium tracking-[-0.01em] md:text-4xl">The loop on top of forking.</h2>
-        <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <Eyebrow>The reliability lifecycle</Eyebrow>
+        <h2 className="mt-4 max-w-2xl font-serif text-3xl font-medium tracking-[-0.01em] md:text-4xl">Detect → repair → remember → prevent.</h2>
+        <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {[
-            { n: "01", t: "Audit", d: "Claude reviews every agent decision against the policy, in parallel — and rules out the ones that merely applied bad input." },
-            { n: "02", t: "Fork", d: "At each suspect, inject the corrected decision and re-simulate the tail live. The one that flips the outcome is the culprit." },
-            { n: "03", t: "Repair", d: "Claude (effort=max) explains the root cause and rewrites the offending prompt." },
+            { n: "01", t: "Detect", d: "A multi-agent run returns the wrong outcome. WorldLine treats the failure as a signal, not a dead end." },
+            { n: "02", t: "Attribute", d: "Claude audits every decision in parallel and intervention-tests each — only the decision that flips the outcome is the culprit." },
+            { n: "03", t: "Repair", d: "Claude (effort=max) explains the root cause and rewrites the offending prompt or policy." },
             { n: "04", t: "Verify", d: "The full workflow re-runs with the patch; a code assertion proves the outcome flipped." },
+            { n: "05", t: "Remember", d: "The verified fix becomes a durable lesson in fleet memory — failure class, root cause, proof, and the agents it protects." },
+            { n: "06", t: "Prevent", d: "Any agent — even a different one — about to repeat that failure class is caught from memory and fixed before it ships." },
           ].map((s) => (
             <div key={s.n} className="rounded-lg border-l-2 border-accent/40 bg-panel/25 p-5">
               <div className="font-mono text-[12px] text-accent">{s.n}</div>
