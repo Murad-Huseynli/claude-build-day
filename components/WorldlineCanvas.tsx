@@ -2,29 +2,19 @@
 import { Canvas, useFrame } from "@react-three/fiber";
 import { Line, Stars } from "@react-three/drei";
 import { useMemo, useRef } from "react";
+import type { MutableRefObject } from "react";
 import * as THREE from "three";
 import type { LoopResult } from "@/lib/worldline/types";
 
-// Label-free by design: the 3D shows the worldline STRUCTURE (orbs + halos +
-// edges + the fork); all text lives in the 2D step-rail UI. No per-frame <Html>
-// => no jank, no overlapping labels.
+// Label-free by design: the 3D shows STRUCTURE (orbs + halos + edges + the fork);
+// all text lives in the 2D readout. Nodes reveal in sequence (propagation), not
+// a single state-swap. No per-frame <Html> => no jank, no overlapping labels.
 
-const COL = {
-  neutral: "#54657f",
-  llm: "#5b8cff",
-  culprit: "#ffd166",
-  fail: "#ff5a52",
-  pass: "#3ddc84",
-};
-
-const SP = 1.85; // x spacing
-const BR = 1.75; // branch height
+const COL = { neutral: "#54657f", llm: "#5b8cff", culprit: "#ffd166", fail: "#ff5a52", pass: "#3ddc84", accent: "#5b8cff" };
+const SP = 1.85;
+const BR = 1.75;
 const XOFF = -3.5 * SP;
-
-// pipeline order → x index
-const IDX: Record<string, number> = {
-  intake: 0, fraud_check: 1, classify: 2, retrieve_policy: 3, eligibility: 4, amount: 5, decision: 6, outcome: 7,
-};
+const IDX: Record<string, number> = { intake: 0, fraud_check: 1, classify: 2, retrieve_policy: 3, eligibility: 4, amount: 5, decision: 6, outcome: 7 };
 function P(id: string, branch = false): [number, number, number] {
   return [IDX[id] * SP + XOFF, branch ? BR : 0, 0];
 }
@@ -42,8 +32,7 @@ function useHalo() {
     grd.addColorStop(1, "rgba(255,255,255,0)");
     g.fillStyle = grd;
     g.fillRect(0, 0, s, s);
-    const t = new THREE.CanvasTexture(c);
-    return t;
+    return new THREE.CanvasTexture(c);
   }, []);
 }
 
@@ -54,24 +43,24 @@ interface NodeSpec {
   size: number;
   reveal: number;
   lit: number;
+  delay: number;
   emphasis?: boolean;
 }
 
-function Node({ spec, stage, halo }: { spec: NodeSpec; stage: number; halo: THREE.Texture | null }) {
+function Node({ spec, stage, halo, t0 }: { spec: NodeSpec; stage: number; halo: THREE.Texture | null; t0: MutableRefObject<number> }) {
   const grp = useRef<THREE.Group>(null);
   const core = useRef<THREE.MeshStandardMaterial>(null);
   const hmat = useRef<THREE.SpriteMaterial>(null);
-  const active = stage >= spec.reveal;
-  const lit = stage >= spec.lit;
   useFrame(({ clock }) => {
     if (!grp.current) return;
-    const t = active ? 1 : 0.0001;
-    const s = grp.current.scale.x + (t - grp.current.scale.x) * 0.16;
-    grp.current.scale.setScalar(s);
+    const active = stage >= spec.reveal && clock.elapsedTime - t0.current - spec.delay > 0;
+    const lit = stage >= spec.lit;
+    const want = active ? 1 : 0.0001;
+    grp.current.scale.setScalar(grp.current.scale.x + (want - grp.current.scale.x) * 0.16);
     const pulse = spec.emphasis && stage >= 2 && stage <= 3 ? 0.6 + Math.sin(clock.elapsedTime * 3.2) * 0.5 : 0;
-    const baseE = lit ? (spec.emphasis ? 2.0 : 1.15) : 0.06;
+    const baseE = active && lit ? (spec.emphasis ? 2.0 : 1.15) : 0.06;
     if (core.current) core.current.emissiveIntensity += (baseE + pulse - core.current.emissiveIntensity) * 0.18;
-    if (hmat.current) hmat.current.opacity += ((lit ? 0.75 : 0.12) + pulse * 0.25 - hmat.current.opacity) * 0.18;
+    if (hmat.current) hmat.current.opacity += ((active && lit ? 0.75 : 0.1) + pulse * 0.25 - hmat.current.opacity) * 0.18;
   });
   return (
     <group ref={grp} position={spec.pos} scale={0.0001}>
@@ -90,13 +79,19 @@ function Node({ spec, stage, halo }: { spec: NodeSpec; stage: number; halo: THRE
 
 function Edge({ a, b, color, reveal, stage }: { a: [number, number, number]; b: [number, number, number]; color: string; reveal: number; stage: number }) {
   if (stage < reveal) return null;
-  return <Line points={[a, b]} color={color} lineWidth={2.2} transparent opacity={0.55} />;
+  return <Line points={[a, b]} color={color} lineWidth={2.2} transparent opacity={0.5} />;
 }
 
 function Scene({ data, stage }: { data: LoopResult; stage: number }) {
   const halo = useHalo();
   const group = useRef<THREE.Group>(null);
+  const t0 = useRef(0);
+  const last = useRef(-1);
   useFrame(({ clock }) => {
+    if (last.current !== stage) {
+      last.current = stage;
+      t0.current = clock.elapsedTime;
+    }
     if (group.current) group.current.rotation.y = Math.sin(clock.elapsedTime * 0.12) * 0.16;
   });
 
@@ -104,32 +99,27 @@ function Scene({ data, stage }: { data: LoopResult; stage: number }) {
     const culprit = data.bisect.culpritId;
     const orig = ["intake", "fraud_check", "classify", "retrieve_policy", "eligibility", "amount", "decision"];
     const ruleIds = new Set(["retrieve_policy", "eligibility", "amount"]);
-    const nodes: NodeSpec[] = orig.map((id) => ({
+    const nodes: NodeSpec[] = orig.map((id, i) => ({
       key: id,
       pos: P(id),
       color: id === culprit ? COL.culprit : ruleIds.has(id) ? COL.neutral : COL.llm,
       size: ruleIds.has(id) ? 0.22 : 0.34,
       reveal: 1,
       lit: 1,
+      delay: i * 0.06,
       emphasis: id === culprit,
     }));
-    // original outcome (red)
-    nodes.push({ key: "outcomeR", pos: P("outcome"), color: COL.fail, size: 0.42, reveal: 1, lit: 1 });
-    // counterfactual branch (green) from classify
-    for (const id of ["retrieve_policy", "eligibility", "amount", "decision"]) {
-      nodes.push({ key: "cf_" + id, pos: P(id, true), color: COL.pass, size: ruleIds.has(id) ? 0.22 : 0.34, reveal: 3, lit: 3 });
-    }
-    nodes.push({ key: "outcomeG", pos: P("outcome", true), color: COL.pass, size: 0.42, reveal: 3, lit: 4 });
+    nodes.push({ key: "outcomeR", pos: P("outcome"), color: COL.fail, size: 0.42, reveal: 1, lit: 1, delay: 0.45 });
+    const cf = ["retrieve_policy", "eligibility", "amount", "decision"];
+    cf.forEach((id, i) => nodes.push({ key: "cf_" + id, pos: P(id, true), color: COL.pass, size: ruleIds.has(id) ? 0.22 : 0.34, reveal: 3, lit: 3, delay: i * 0.13 }));
+    nodes.push({ key: "outcomeG", pos: P("outcome", true), color: COL.pass, size: 0.42, reveal: 3, lit: 4, delay: 0.55 });
 
     const edges: { a: [number, number, number]; b: [number, number, number]; color: string; reveal: number }[] = [];
     for (let i = 0; i < orig.length - 1; i++) edges.push({ a: P(orig[i]), b: P(orig[i + 1]), color: i >= 2 ? COL.fail : COL.neutral, reveal: 1 });
     edges.push({ a: P("decision"), b: P("outcome"), color: COL.fail, reveal: 1 });
-    // fork up from classify
     edges.push({ a: P("classify"), b: P("retrieve_policy", true), color: COL.pass, reveal: 3 });
-    const cf = ["retrieve_policy", "eligibility", "amount", "decision"];
     for (let i = 0; i < cf.length - 1; i++) edges.push({ a: P(cf[i], true), b: P(cf[i + 1], true), color: COL.pass, reveal: 3 });
     edges.push({ a: P("decision", true), b: P("outcome", true), color: COL.pass, reveal: 3 });
-
     return { nodes, edges };
   }, [data]);
 
@@ -144,7 +134,7 @@ function Scene({ data, stage }: { data: LoopResult; stage: number }) {
           <Edge key={i} {...e} stage={stage} />
         ))}
         {nodes.map((n) => (
-          <Node key={n.key} spec={n} stage={stage} halo={halo} />
+          <Node key={n.key} spec={n} stage={stage} halo={halo} t0={t0} />
         ))}
       </group>
     </>

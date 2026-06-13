@@ -185,7 +185,7 @@ export default function Home() {
               disabled={stage >= MAX_STAGE}
               className="rounded-full border border-line bg-panel px-4 py-2 text-[13px] font-medium text-fg transition hover:border-fg/30 disabled:opacity-40"
             >
-              {playing ? "❚❚ Pause" : "▶ Play"}
+              {playing ? "Pause" : "Play"}
             </button>
             <button
               onClick={() => {
@@ -202,14 +202,14 @@ export default function Home() {
                 <span key={i} className={`h-1.5 w-1.5 rounded-full transition ${i < stage ? "bg-accent" : "bg-line"}`} />
               ))}
             </div>
-            <button onClick={() => { setPlaying(false); setStage(0); started.current = false; }} className="rounded-full px-3 py-2 text-[13px] text-muted hover:text-fg">↺ reset</button>
+            <button onClick={() => { setPlaying(false); setStage(0); started.current = false; }} className="rounded-full px-3 py-2 text-[13px] text-muted hover:text-fg">Reset</button>
             <div className="grow" />
             <button
               onClick={rerunLive}
               disabled={busy}
               className="rounded-full bg-pass/15 px-4 py-2 text-[13px] font-medium text-pass transition hover:bg-pass/25 disabled:opacity-50"
             >
-              {busy ? "running live…" : "⟲ Re-run live on Opus 4.8"}
+              {busy ? "Running live…" : "Re-run live on Opus 4.8"}
             </button>
           </div>
         )}
@@ -239,7 +239,7 @@ export default function Home() {
       <Section id="compare">
         <Eyebrow>Existing tools vs WorldLine</Eyebrow>
         <h2 className="mt-4 max-w-2xl text-3xl font-semibold tracking-tight md:text-4xl">Replay and forking exist. We build the loop on top.</h2>
-        <div className="mt-8 overflow-x-auto rounded-xl border border-line">
+        <div className="mt-8 hidden overflow-x-auto rounded-xl border border-line md:block">
           <table className="w-full min-w-[640px] text-left text-[13px]">
             <thead className="bg-panel/60 font-mono text-[11px] uppercase tracking-wider text-muted">
               <tr>
@@ -269,6 +269,21 @@ export default function Home() {
             </tbody>
           </table>
         </div>
+        {/* mobile: stacked instead of a horizontally-scrolled table */}
+        <div className="mt-6 space-y-3 md:hidden">
+          <div className="rounded-xl border border-pass/30 bg-pass/[0.05] p-4">
+            <div className="mb-2 font-mono text-[10px] uppercase tracking-wider text-pass">Only WorldLine</div>
+            <ul className="space-y-1.5 text-[14px] text-fg/90">
+              <li>Auto-finds the culprit decision</li>
+              <li>Authors the repair</li>
+              <li>Verifies the repair flips the outcome</li>
+            </ul>
+          </div>
+          <div className="rounded-xl border border-line bg-panel/60 p-4">
+            <div className="mb-2 font-mono text-[10px] uppercase tracking-wider text-muted">Tracing · Replay · Forking</div>
+            <p className="text-[13px] leading-relaxed text-muted">Show, repeat, or explore one alternate path — but you still pick the checkpoint, and nothing proves the fix.</p>
+          </div>
+        </div>
         <p className="mt-4 max-w-3xl text-[13px] leading-relaxed text-muted">
           LangGraph time-travel (<code className="text-fg/80">updateState</code> + resume) and AgentOps already support
           replay and forking from checkpoints — we don&apos;t claim otherwise. WorldLine&apos;s wedge is the autonomous
@@ -288,7 +303,7 @@ export default function Home() {
           </p>
           <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
             <button onClick={rerunLive} disabled={busy} className="rounded-full bg-accent px-6 py-3 text-[15px] font-semibold text-bg transition hover:brightness-110 disabled:opacity-50">
-              {busy ? "running live…" : "⟲ Re-run the loop live"}
+              {busy ? "Running live…" : "Re-run the loop live"}
             </button>
             <a href="https://github.com/Murad-Huseynli/claude-build-day" className="rounded-full border border-line px-6 py-3 text-[15px] font-medium text-fg transition hover:border-fg/30">
               View the code
@@ -307,17 +322,12 @@ export default function Home() {
   );
 }
 
+// Always visible (never JS-gated to invisible); a CSS-only entrance gives motion
+// without the risk of a blank section if the observer is slow or JS is disabled.
 function Section({ id, children }: { id: string; children: React.ReactNode }) {
   return (
-    <motion.section
-      id={id}
-      initial={{ opacity: 0, y: 24 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, amount: 0.25 }}
-      transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-      className="mx-auto max-w-6xl scroll-mt-20 px-6 py-20"
-    >
+    <section id={id} className="reveal mx-auto max-w-6xl scroll-mt-20 px-6 py-20">
       {children}
-    </motion.section>
+    </section>
   );
 }

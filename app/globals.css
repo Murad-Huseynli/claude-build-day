@@ -6,7 +6,7 @@
   --panel2: #0e131d;
   --line: #1b2433;
   --fg: #e6edf6;
-  --muted: #8b97a8;
+  --muted: #9aa7b9;
   --fail: #ff5a52;
   --warn: #ffd166;
   --pass: #3ddc84;
@@ -43,6 +43,27 @@ body {
 
 .tnum {
   font-variant-numeric: tabular-nums;
+}
+
+/* Robust entrance: plays once on load (not scroll-gated), so content is never
+   left invisible by a slow/absent observer. */
+@keyframes reveal {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.reveal {
+  animation: reveal 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    animation: none;
+  }
 }
 
 ::selection {
