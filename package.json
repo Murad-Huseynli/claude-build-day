@@ -10,6 +10,7 @@
     "test": "vitest run",
     "prove": "tsx scripts/prove.ts",
     "prove:memory": "tsx scripts/prove-memory.ts",
+    "prove:gate": "tsx scripts/prove-gate.ts",
     "record": "tsx scripts/record.ts"
   },
   "dependencies": {
